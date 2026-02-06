@@ -2,534 +2,288 @@
 <html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>Ultra Boxing Sim V2.0</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TITAN GLOBAL EYE 👁️</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700;900&display=swap" rel="stylesheet">
+
     <style>
         body {
-            margin: 0;
-            background: #050505;
-            color: white;
-            font-family: 'Segoe UI', sans-serif;
+            background-color: #050505;
+            color: #ffffff;
+            font-family: 'Heebo', sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* עיצוב זכוכית לממשק */
+        .glass-panel {
+            background: rgba(20, 20, 20, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.7);
+        }
+
+        /* סמן שידור חי */
+        .live-badge {
+            animation: pulse-red 2s infinite;
+        }
+        @keyframes pulse-red {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
+        /* רשימת המצלמות */
+        .cam-item {
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 1px solid transparent;
+        }
+        .cam-item:hover, .cam-item.active {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: #3b82f6;
+            transform: scale(1.02);
+        }
+        .cam-item.active .status-dot {
+            background-color: #3b82f6;
+            box-shadow: 0 0 10px #3b82f6;
+        }
+
+        /* מסך וידאו */
+        .video-container {
+            position: relative;
+            padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
+            height: 0;
             overflow: hidden;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
+            border-radius: 16px;
+            background: #000;
         }
-        canvas {
-            box-shadow: 0 0 100px rgba(0,0,0,0.9);
-            border-top: 5px solid #333;
-            border-bottom: 5px solid #333;
-            background: linear-gradient(to bottom, #1a1a1a 0%, #000 100%);
+        .video-container iframe {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            border: none;
         }
-        #ui {
-            position: absolute;
-            top: 20px;
-            width: 900px;
-            display: flex;
-            justify-content: space-between;
-            pointer-events: none;
-            text-transform: uppercase;
-            font-weight: 900;
-            letter-spacing: 2px;
-        }
-        .fighter-hud { width: 40%; position: relative; }
-        .bar-bg { height: 25px; background: #333; transform: skewX(-20deg); border: 2px solid #555; overflow: hidden; }
-        .hp-bar { height: 100%; width: 100%; background: #e74c3c; transition: width 0.1s linear; box-shadow: 0 0 15px #e74c3c; }
-        .stamina-bg { height: 10px; width: 80%; background: #222; margin-top: 5px; transform: skewX(-20deg); border: 1px solid #444; }
-        .st-bar { height: 100%; width: 100%; background: #f1c40f; transition: width 0.1s; }
-        .name { font-size: 30px; margin-bottom: 5px; text-shadow: 2px 2px 0 #000; font-style: italic; }
-        
-        #overlay {
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            pointer-events: none;
-        }
-        #big-text {
-            font-size: 100px;
-            font-weight: 900;
-            color: #fff;
-            text-shadow: 0 0 30px rgba(255,255,255,0.8);
-            transform: scale(0);
-            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        .controls {
-            position: absolute;
-            bottom: 10px;
-            color: #666;
-            font-size: 12px;
-            text-align: center;
-            width: 100%;
-        }
-        .key { display: inline-block; padding: 2px 6px; border: 1px solid #666; border-radius: 4px; color: #aaa; }
+
+        /* גלילה מותאמת */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+        ::-webkit-scrollbar-track { background: #000; }
     </style>
 </head>
-<body>
+<body class="h-screen flex flex-col lg:flex-row overflow-hidden">
 
-<div id="ui">
-    <div class="fighter-hud">
-        <div class="name" style="color:#3498db">PLAYER 1</div>
-        <div class="bar-bg"><div id="hp1" class="hp-bar"></div></div>
-        <div class="stamina-bg"><div id="st1" class="st-bar"></div></div>
-    </div>
-    <div class="fighter-hud" style="text-align:right">
-        <div class="name" style="color:#e74c3c">CPU CHAMP</div>
-        <div class="bar-bg"><div id="hp2" class="hp-bar" style="float:right"></div></div>
-        <div style="clear:both"></div>
-        <div class="stamina-bg" style="float:right"><div id="st2" class="st-bar" style="float:right"></div></div>
-    </div>
-</div>
-
-<div id="overlay"><div id="big-text">KO!</div></div>
-<canvas id="game" width="900" height="500"></canvas>
-<div class="controls">
-    זוז: <span class="key">Arrows</span> | מכה: <span class="key">Z</span> | מכה חזקה: <span class="key">C</span> | הגנה: <span class="key">X</span> | אתחול: <span class="key">R</span>
-</div>
-
-<script>
-/**
- * ULTRA BOXING ENGINE V2
- * Includes: Particle System, Screen Shake, Procedural Animation, Dynamic AI
- */
-
-const canvas = document.getElementById('game');
-const ctx = canvas.getContext('2d');
-
-// --- הגדרות מנוע ---
-const GRAVITY = 0;
-const GROUND_Y = 380;
-let timeScale = 1.0; // לשליטה בהילוך איטי
-let shakeIntensity = 0;
-
-// --- חלקיקים ואפקטים ---
-let particles = [];
-let floatingTexts = [];
-
-class Particle {
-    constructor(x, y, color, speed) {
-        this.x = x;
-        this.y = y;
-        this.vx = (Math.random() - 0.5) * speed;
-        this.vy = (Math.random() - 0.5) * speed;
-        this.life = 1.0;
-        this.color = color;
-        this.size = Math.random() * 4 + 2;
-    }
-    update() {
-        this.x += this.vx * timeScale;
-        this.y += this.vy * timeScale;
-        this.vy += 0.2 * timeScale; // כוח משיכה לחלקיקים
-        this.life -= 0.03 * timeScale;
-    }
-    draw(ctx) {
-        ctx.globalAlpha = this.life;
-        ctx.fillStyle = this.color;
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
-        ctx.fill();
-        ctx.globalAlpha = 1.0;
-    }
-}
-
-class FloatingText {
-    constructor(x, y, text, color) {
-        this.x = x;
-        this.y = y;
-        this.text = text;
-        this.color = color;
-        this.life = 1.0;
-        this.vy = -2;
-    }
-    update() {
-        this.y += this.vy * timeScale;
-        this.life -= 0.02 * timeScale;
-    }
-    draw(ctx) {
-        ctx.globalAlpha = this.life;
-        ctx.fillStyle = this.color;
-        ctx.font = "bold 24px Arial";
-        ctx.strokeStyle = "black";
-        ctx.lineWidth = 3;
-        ctx.strokeText(this.text, this.x, this.y);
-        ctx.fillText(this.text, this.x, this.y);
-        ctx.globalAlpha = 1.0;
-    }
-}
-
-function spawnParticles(x, y, count, color) {
-    for(let i=0; i<count; i++) {
-        particles.push(new Particle(x, y, color, 10));
-    }
-}
-
-function spawnText(x, y, text, color) {
-    floatingTexts.push(new FloatingText(x, y, text, color));
-}
-
-// --- מחלקת לוחם ---
-class Fighter {
-    constructor(x, isAI, color) {
-        this.x = x;
-        this.y = GROUND_Y;
-        this.vx = 0;
-        this.width = 40;
-        this.height = 100;
-        this.color = color;
-        this.isAI = isAI;
-        this.facing = isAI ? -1 : 1;
+    <main class="flex-1 flex flex-col p-4 relative h-full">
         
-        // Stats
-        this.hp = 100;
-        this.maxHp = 100;
-        this.stamina = 100;
-        
-        // State
-        this.state = 'idle'; // idle, move, attack, block, hit, ko
-        this.frame = 0;
-        this.punchType = 'none'; // light, heavy
-        this.blockTimer = 0;
-        
-        // Animation Vars
-        this.animOffset = 0;
-        this.gloveExtension = 0;
-    }
+        <header class="flex justify-between items-center mb-4">
+            <div class="flex items-center gap-3">
+                <i class="fas fa-globe-americas text-blue-500 text-2xl"></i>
+                <div>
+                    <h1 class="text-xl font-black tracking-widest">GLOBAL <span class="text-blue-500">EYE</span></h1>
+                    <div class="text-xs text-gray-400">LIVE SATELLITE FEED NETWORK</div>
+                </div>
+            </div>
+            <div class="bg-red-600/20 text-red-500 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-2 border border-red-600/30 live-badge">
+                <div class="w-2 h-2 bg-red-500 rounded-full"></div> LIVE FEED
+            </div>
+        </header>
 
-    update(target) {
-        if (this.state === 'ko') return;
-
-        // Stamina Regen
-        if (this.state === 'idle' || this.state === 'move') {
-            if (this.stamina < 100) this.stamina += 0.4 * timeScale;
-        }
-
-        // Physics & Movement
-        this.x += this.vx * timeScale;
-        
-        // Friction
-        this.vx *= 0.8;
-
-        // Breathe Animation
-        this.animOffset += 0.1 * timeScale;
-        
-        // Boundaries
-        if (this.x < 20) this.x = 20;
-        if (this.x > 880) this.x = 880;
-
-        // Cooldowns
-        if (this.frame > 0) this.frame -= 1 * timeScale;
-        else if (this.state === 'attack' || this.state === 'hit') {
-            this.state = 'idle';
-            this.gloveExtension = 0;
-        }
-
-        if (this.isAI) this.aiLogic(target);
-    }
-
-    aiLogic(target) {
-        const dist = Math.abs(this.x - target.x);
-        const range = 90;
-
-        // Always face target
-        this.facing = (target.x > this.x) ? 1 : -1;
-
-        if (this.state === 'hit' || this.state === 'attack') return;
-
-        // React to player attack
-        if (target.state === 'attack' && dist < 120 && Math.random() < 0.05) {
-            this.state = 'block';
-            this.frame = 20;
-            return;
-        }
-
-        // Release block
-        if (this.state === 'block' && target.state !== 'attack') {
-            this.state = 'idle';
-        }
-
-        // Offensive
-        if (dist < range) {
-            if (this.stamina > 20 && Math.random() < 0.08) {
-                this.attack(target, Math.random() > 0.7 ? 'heavy' : 'light');
-            } else if (this.stamina < 30) {
-                 // Retreat
-                 this.vx = -3 * this.facing;
-                 this.state = 'move';
-            }
-        } else {
-            // Approach
-            this.vx = 2.5 * this.facing;
-            this.state = 'move';
-        }
-    }
-
-    attack(target, type) {
-        if (this.state !== 'idle' && this.state !== 'move') return;
-        
-        let cost = (type === 'heavy') ? 35 : 15;
-        if (this.stamina < cost) return;
-
-        this.stamina -= cost;
-        this.state = 'attack';
-        this.punchType = type;
-        this.frame = (type === 'heavy') ? 25 : 15;
-        
-        // Sound & Visuals handled in draw mainly, logic here:
-        // Hit check delayed slightly for "impact" feel
-        setTimeout(() => {
-            if (this.state !== 'attack') return; // Interrupted
-            this.checkHit(target, type);
-        }, (type === 'heavy' ? 200 : 100) / timeScale); // Scale timeout logic roughly
-    }
-
-    checkHit(target, type) {
-        const reach = (type === 'heavy') ? 100 : 70;
-        const dist = Math.abs(this.x - target.x);
-        
-        // Hitbox logic
-        if (dist < reach && (this.facing === 1 && target.x > this.x || this.facing === -1 && target.x < this.x)) {
+        <div class="video-container shadow-2xl shadow-blue-900/20 border border-gray-800">
+            <iframe id="mainPlayer" src="" allow="autoplay; encrypted-media" allowfullscreen></iframe>
             
-            let damage = (type === 'heavy') ? 25 : 8;
-            let blocked = false;
+            <div id="videoLoader" class="absolute inset-0 bg-black flex items-center justify-center z-10">
+                <div class="animate-spin text-blue-500 text-4xl"><i class="fas fa-circle-notch"></i></div>
+            </div>
+        </div>
 
-            if (target.state === 'block') {
-                blocked = true;
-                damage *= 0.1;
-                target.stamina -= 10;
-                spawnParticles(target.x, target.y - 60, 5, "#fff"); // Sparks
-                spawnText(target.x, target.y - 120, "BLOCKED", "#aaa");
-            } else {
-                spawnParticles(target.x, target.y - 80, 15, "#e74c3c"); // Blood/Sweat
-                spawnText(target.x, target.y - 120, Math.floor(damage), "#ff0000");
+        <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 h-full overflow-hidden">
+            
+            <div class="glass-panel p-4 rounded-xl flex flex-col justify-center">
+                <h2 id="camTitle" class="text-2xl font-bold">Loading...</h2>
+                <div id="camRegion" class="text-gray-400 text-sm mb-2">--</div>
+                <div class="text-3xl font-mono text-blue-400" id="localTime">--:--</div>
+                <div class="text-xs text-gray-500 mt-1">LOCAL TIME</div>
+            </div>
+
+            <div class="glass-panel p-4 rounded-xl flex items-center justify-between">
+                <div>
+                    <div class="text-gray-400 text-xs uppercase tracking-wide">Temperature</div>
+                    <div class="text-5xl font-light mt-1"><span id="temp">--</span>°</div>
+                    <div id="weatherDesc" class="text-blue-300 text-sm mt-1">--</div>
+                </div>
+                <div class="text-6xl text-gray-300" id="weatherIcon">🌤️</div>
+            </div>
+
+            <div class="glass-panel p-4 rounded-xl grid grid-cols-2 gap-2">
+                <div class="bg-white/5 rounded p-2 text-center">
+                    <i class="fas fa-wind text-blue-400 mb-1"></i>
+                    <div class="text-sm font-bold"><span id="wind">--</span></div>
+                    <div class="text-[10px] text-gray-400">WIND (km/h)</div>
+                </div>
+                <div class="bg-white/5 rounded p-2 text-center">
+                    <i class="fas fa-tint text-blue-400 mb-1"></i>
+                    <div class="text-sm font-bold"><span id="humidity">--</span>%</div>
+                    <div class="text-[10px] text-gray-400">HUMIDITY</div>
+                </div>
+                <div class="bg-white/5 rounded p-2 text-center">
+                    <i class="fas fa-eye text-blue-400 mb-1"></i>
+                    <div class="text-sm font-bold"><span id="vis">--</span></div>
+                    <div class="text-[10px] text-gray-400">VIS (km)</div>
+                </div>
+                <div class="bg-white/5 rounded p-2 text-center">
+                    <i class="fas fa-cloud text-blue-400 mb-1"></i>
+                    <div class="text-sm font-bold"><span id="clouds">--</span>%</div>
+                    <div class="text-[10px] text-gray-400">CLOUDS</div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <aside class="w-full lg:w-80 bg-[#0a0a0a] border-t lg:border-t-0 lg:border-r border-gray-800 flex flex-col h-1/3 lg:h-full">
+        <div class="p-4 border-b border-gray-800 bg-[#0f0f0f]">
+            <h3 class="font-bold text-gray-400 text-xs tracking-widest">AVAILABLE FEEDS</h3>
+        </div>
+        
+        <div id="camList" class="overflow-y-auto p-2 space-y-2 flex-1">
+            </div>
+    </aside>
+
+    <script>
+        // === מאגר מצלמות (YouTube Live IDs) ===
+        // הערה: שידורי לייב ביוטיוב משתנים לפעמים. בחרתי את הערוצים היציבים ביותר.
+        const cameras = [
+            { name: "New York", sub: "Times Square, USA", id: "mPZ73C8yR24", lat: 40.7580, lon: -73.9855, tz: "America/New_York" },
+            { name: "Tokyo", sub: "Shibuya Crossing, Japan", id: "2jR3E3n_3yY", lat: 35.6595, lon: 139.7004, tz: "Asia/Tokyo" },
+            { name: "London", sub: "Heathrow Airport, UK", id: "91I8pZAQE30", lat: 51.4700, lon: -0.4543, tz: "Europe/London" },
+            { name: "Venice", sub: "Grand Canal, Italy", id: "ph1vpnYIxJk", lat: 45.4408, lon: 12.3155, tz: "Europe/Rome" },
+            { name: "Prague", sub: "Old Town, Czechia", id: "uQKqI5sM-vY", lat: 50.0874, lon: 14.4212, tz: "Europe/Prague" },
+            { name: "Koh Samui", sub: "Beach Cam, Thailand", id: "y603a_qG0Kk", lat: 9.5120, lon: 100.0582, tz: "Asia/Bangkok" },
+            { name: "Kiev", sub: "Maidan Square, Ukraine", id: "ViKj4Vw230o", lat: 50.4501, lon: 30.5234, tz: "Europe/Kiev" },
+            { name: "Jackson Hole", sub: "Wyoming, USA", id: "1EiC9bvVGnk", lat: 43.4799, lon: -110.7624, tz: "America/Denver" },
+            { name: "Amsterdam", sub: "Dam Square, Netherlands", id: "SjH8-r2g9x8", lat: 52.3731, lon: 4.8926, tz: "Europe/Amsterdam" }
+        ];
+
+        let currentCamIndex = 0;
+
+        // === אתחול ===
+        window.onload = () => {
+            renderList();
+            loadCamera(0);
+            
+            // עדכון שעון מקומי כל דקה
+            setInterval(updateLocalTime, 10000);
+        };
+
+        // === יצירת רשימה ===
+        function renderList() {
+            const list = document.getElementById('camList');
+            list.innerHTML = '';
+            
+            cameras.forEach((cam, index) => {
+                const el = document.createElement('div');
+                el.className = `cam-item p-3 rounded-lg flex items-center gap-3 ${index === 0 ? 'active' : ''}`;
+                el.onclick = () => loadCamera(index);
+                el.innerHTML = `
+                    <div class="relative w-16 h-10 bg-gray-800 rounded overflow-hidden">
+                        <img src="https://img.youtube.com/vi/${cam.id}/mqdefault.jpg" class="w-full h-full object-cover opacity-70">
+                    </div>
+                    <div>
+                        <div class="font-bold text-sm">${cam.name}</div>
+                        <div class="text-xs text-gray-500">${cam.sub}</div>
+                    </div>
+                    <div class="mr-auto status-dot w-2 h-2 rounded-full bg-gray-600 transition-colors"></div>
+                `;
+                list.appendChild(el);
+            });
+        }
+
+        // === טעינת מצלמה ונתונים ===
+        async function loadCamera(index) {
+            currentCamIndex = index;
+            const cam = cameras[index];
+            
+            // עדכון UI ברשימה
+            document.querySelectorAll('.cam-item').forEach((el, i) => {
+                if(i === index) el.classList.add('active');
+                else el.classList.remove('active');
+            });
+
+            // הצגת לואדר
+            document.getElementById('videoLoader').style.display = 'flex';
+
+            // טעינת וידאו
+            const player = document.getElementById('mainPlayer');
+            player.src = `https://www.youtube.com/embed/${cam.id}?autoplay=1&mute=1&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1`;
+            
+            // עדכון כותרות
+            document.getElementById('camTitle').innerText = cam.name;
+            document.getElementById('camRegion').innerText = cam.sub;
+            
+            // הסתרת לואדר אחרי 2 שניות (סימולציה)
+            setTimeout(() => {
+                document.getElementById('videoLoader').style.display = 'none';
+            }, 1500);
+
+            // טעינת מזג אוויר
+            updateLocalTime();
+            await fetchWeather(cam.lat, cam.lon);
+        }
+
+        // === מנוע מזג אוויר (ללא Windy) ===
+        async function fetchWeather(lat, lon) {
+            try {
+                // קריאה ל-Open-Meteo
+                const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,visibility,cloud_cover`);
+                const data = await res.json();
+                const cur = data.current;
+
+                // עדכון הנתונים במסך
+                document.getElementById('temp').innerText = Math.round(cur.temperature_2m);
+                document.getElementById('wind').innerText = Math.round(cur.wind_speed_10m);
+                document.getElementById('humidity').innerText = cur.relative_humidity_2m;
+                document.getElementById('vis').innerText = (cur.visibility / 1000).toFixed(1);
+                document.getElementById('clouds').innerText = cur.cloud_cover;
                 
-                // IMPACT
-                shakeIntensity = (type === 'heavy') ? 15 : 5;
-                target.takeDamage(damage, this.facing, type);
+                // אייקון ותיאור
+                const info = getWeatherInfo(cur.weather_code);
+                document.getElementById('weatherIcon').innerText = info.icon;
+                document.getElementById('weatherDesc').innerText = info.desc;
+
+            } catch (e) {
+                console.error("Weather Error", e);
             }
         }
-    }
 
-    takeDamage(amount, hitterDir, type) {
-        this.hp -= amount;
-        this.state = 'hit';
-        this.frame = 15;
-        this.vx = hitterDir * (type === 'heavy' ? 10 : 5); // Knockback
-        
-        if (this.hp <= 0) {
-            this.hp = 0;
-            this.state = 'ko';
-            startSlowMo();
-        }
-    }
-
-    draw(ctx) {
-        ctx.save();
-        ctx.translate(this.x, this.y);
-        
-        // Breathe Bobbing
-        let bob = Math.sin(this.animOffset) * 2;
-        if (this.state === 'ko') bob = 50; // Lying down offset
-
-        // Rotation for KO
-        if (this.state === 'ko') {
-            ctx.rotate(this.facing * Math.PI / 2);
-            ctx.translate(0, -20);
+        function updateLocalTime() {
+            const cam = cameras[currentCamIndex];
+            try {
+                const time = new Date().toLocaleTimeString('en-US', {
+                    timeZone: cam.tz,
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                });
+                document.getElementById('localTime').innerText = time;
+            } catch (e) {
+                document.getElementById('localTime').innerText = "--:--";
+            }
         }
 
-        // Color Setup
-        const skinColor = "#ffdbac";
-        const gloveColor = "#c0392b";
-        const shortsColor = this.color;
-
-        // --- DRAW BODY PROCEDURALLY ---
-        
-        // Legs
-        ctx.fillStyle = "#222";
-        ctx.fillRect(-15, -40 + bob, 10, 40); // Back Leg
-        ctx.fillRect(5, -40 + bob, 10, 40);  // Front Leg
-
-        // Torso
-        ctx.fillStyle = skinColor;
-        ctx.fillRect(-15, -90 + bob, 30, 50);
-        
-        // Shorts
-        ctx.fillStyle = shortsColor;
-        ctx.fillRect(-16, -55 + bob, 32, 20);
-
-        // Head
-        ctx.fillStyle = skinColor;
-        ctx.beginPath();
-        ctx.arc(0, -100 + bob, 12, 0, Math.PI*2);
-        ctx.fill();
-
-        // Arms Logic
-        let armX = 15 * this.facing;
-        let armY = -85 + bob;
-        
-        // Attack Animation Calculation
-        let extend = 0;
-        if (this.state === 'attack') {
-            // Simple ease-out for punch
-            const maxFrame = (this.punchType === 'heavy') ? 25 : 15;
-            const progress = 1 - (this.frame / maxFrame);
-            if (progress < 0.5) extend = progress * 80;
-            else extend = (1 - progress) * 80;
+        function getWeatherInfo(code) {
+            const map = {
+                0: {t: "Clear Sky", i: "☀️"},
+                1: {t: "Mainly Clear", i: "🌤️"},
+                2: {t: "Partly Cloudy", i: "⛅"},
+                3: {t: "Overcast", i: "☁️"},
+                45: {t: "Foggy", i: "🌫️"},
+                51: {t: "Drizzle", i: "🌧️"},
+                61: {t: "Rain", i: "☔"},
+                71: {t: "Snow", i: "❄️"},
+                95: {t: "Thunderstorm", i: "⛈️"}
+            };
+            const def = map[code] || map[0];
+            return { desc: def.t, icon: def.i };
         }
-
-        // Block Position
-        if (this.state === 'block') {
-            armX = 10 * this.facing;
-            armY = -95 + bob;
-        }
-
-        // Back Arm
-        ctx.fillStyle = skinColor;
-        ctx.fillRect(-10, -90 + bob, 10, 30);
-        ctx.fillStyle = gloveColor;
-        ctx.beginPath();
-        ctx.arc(-5 + (this.facing * 5), -75 + bob, 12, 0, Math.PI*2);
-        ctx.fill();
-
-        // Front Arm (Punching Arm)
-        ctx.fillStyle = skinColor;
-        // Shoulder
-        ctx.beginPath();
-        ctx.arc(0, -90 + bob, 8, 0, Math.PI*2);
-        ctx.fill();
-        
-        // Glove
-        ctx.fillStyle = gloveColor;
-        let gloveX = (this.facing * 20) + (this.facing * extend);
-        let gloveY = -80 + bob;
-        
-        if (this.state === 'block') {
-            gloveX = this.facing * 15;
-            gloveY = -105 + bob;
-        }
-
-        ctx.beginPath();
-        ctx.arc(gloveX, gloveY, 14, 0, Math.PI*2);
-        ctx.fill();
-        // Glove shine
-        ctx.fillStyle = "rgba(255,255,255,0.3)";
-        ctx.beginPath();
-        ctx.arc(gloveX - 2, gloveY - 2, 5, 0, Math.PI*2);
-        ctx.fill();
-
-        ctx.restore();
-    }
-}
-
-// --- משתני משחק גלובליים ---
-const p1 = new Fighter(200, false, "#3498db");
-const p2 = new Fighter(700, true, "#e74c3c");
-let keys = {};
-let gameOver = false;
-
-// --- שליטה ---
-window.addEventListener('keydown', e => {
-    keys[e.code] = true;
-    if (e.code === 'KeyZ') p1.attack(p2, 'light');
-    if (e.code === 'KeyC') p1.attack(p2, 'heavy');
-    if (e.code === 'KeyX') p1.state = 'block';
-    if (e.code === 'KeyR' && gameOver) location.reload();
-});
-
-window.addEventListener('keyup', e => {
-    keys[e.code] = false;
-    if (e.code === 'KeyX' && p1.state === 'block') p1.state = 'idle';
-});
-
-function startSlowMo() {
-    timeScale = 0.2;
-    gameOver = true;
-    const txt = document.getElementById('big-text');
-    txt.style.transform = "scale(1)";
-    if (p1.hp > 0) {
-        txt.innerText = "YOU WIN!";
-        txt.style.color = "#2ecc71";
-    } else {
-        txt.innerText = "KNOCKOUT";
-        txt.style.color = "#e74c3c";
-    }
-}
-
-// --- לולאת המשחק ---
-function loop() {
-    // Screen Shake Logic
-    let shakeX = 0, shakeY = 0;
-    if (shakeIntensity > 0) {
-        shakeX = (Math.random() - 0.5) * shakeIntensity;
-        shakeY = (Math.random() - 0.5) * shakeIntensity;
-        shakeIntensity *= 0.9;
-        if (shakeIntensity < 0.5) shakeIntensity = 0;
-    }
-
-    ctx.save();
-    ctx.translate(shakeX, shakeY);
-    ctx.clearRect(-10, -10, canvas.width+20, canvas.height+20);
-
-    // Floor
-    ctx.fillStyle = "#111";
-    ctx.fillRect(0, GROUND_Y, canvas.width, 120);
-    // Ring Ropes
-    ctx.strokeStyle = "#444";
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.moveTo(0, GROUND_Y - 50); ctx.lineTo(canvas.width, GROUND_Y - 50);
-    ctx.moveTo(0, GROUND_Y - 100); ctx.lineTo(canvas.width, GROUND_Y - 100);
-    ctx.stroke();
-
-    // Logic
-    if (!gameOver || timeScale < 1.0) { // Keep updating slowmo
-        if (keys['ArrowLeft']) p1.vx = -4;
-        if (keys['ArrowRight']) p1.vx = 4;
-        
-        p1.update(p2);
-        p2.update(p1);
-    }
-
-    // Drawing
-    // Shadow
-    ctx.fillStyle = "rgba(0,0,0,0.5)";
-    ctx.beginPath();
-    ctx.ellipse(p1.x, GROUND_Y + 5, 20, 5, 0, 0, Math.PI*2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(p2.x, GROUND_Y + 5, 20, 5, 0, 0, Math.PI*2);
-    ctx.fill();
-
-    p1.draw(ctx);
-    p2.draw(ctx);
-
-    // Particles
-    for(let i=particles.length-1; i>=0; i--) {
-        particles[i].update();
-        particles[i].draw(ctx);
-        if (particles[i].life <= 0) particles.splice(i, 1);
-    }
-
-    // Floating Text
-    for(let i=floatingTexts.length-1; i>=0; i--) {
-        floatingTexts[i].update();
-        floatingTexts[i].draw(ctx);
-        if (floatingTexts[i].life <= 0) floatingTexts.splice(i, 1);
-    }
-
-    ctx.restore();
-
-    // UI Updates
-    document.getElementById('hp1').style.width = p1.hp + '%';
-    document.getElementById('st1').style.width = p1.stamina + '%';
-    document.getElementById('hp2').style.width = p2.hp + '%';
-    document.getElementById('st2').style.width = p2.stamina + '%';
-
-    requestAnimationFrame(loop);
-}
-
-loop();
-
-</script>
+    </script>
 </body>
 </html>
