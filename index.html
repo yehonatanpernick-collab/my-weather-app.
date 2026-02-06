@@ -3,540 +3,407 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TITAN Weather 🚀</title>
+    <title>PRO METEO COMMAND 🛰️</title>
     
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;800&display=swap" rel="stylesheet">
 
     <style>
         :root {
-            --bg-dark: #050505;
-            --glass: rgba(30, 30, 30, 0.65);
-            --glass-border: rgba(255, 255, 255, 0.08);
-            --accent: #00f2ff;
-            --accent-glow: rgba(0, 242, 255, 0.4);
-            --text: #ffffff;
-            --card-radius: 24px;
+            --bg-dark: #0b0f19;
+            --panel: #151b2b;
+            --accent: #3b82f6;
+            --text-main: #e2e8f0;
         }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
         body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
             font-family: 'Assistant', sans-serif;
-            background: var(--bg-dark);
-            color: var(--text);
             overflow-x: hidden;
-            min-height: 100vh;
         }
 
-        /* --- קנבס אנימציות רקע --- */
-        #skyCanvas {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            z-index: -1; background: linear-gradient(to bottom, #0f2027, #203a43, #2c5364);
-            transition: background 1s ease;
+        /* עיצוב כרטיסים מקצועי */
+        .pro-card {
+            background-color: var(--panel);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            transition: transform 0.2s;
         }
 
-        .app-layout {
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-            position: relative;
-            z-index: 10;
-            padding-bottom: 50px;
+        /* מפת המכ"ם */
+        #radarMap {
+            height: 100%;
+            width: 100%;
+            border-radius: 12px;
+            z-index: 1;
         }
 
-        /* --- חיפוש --- */
-        .search-deck {
-            display: flex; gap: 10px;
-            background: var(--glass);
-            backdrop-filter: blur(20px);
-            padding: 10px;
-            border-radius: 50px;
-            border: 1px solid var(--glass-border);
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-            margin-bottom: 25px;
-            animation: slideDown 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+        /* מסגרת למצלמות */
+        .cam-frame {
+            width: 100%;
+            height: 100%;
+            border: none;
+            border-radius: 12px;
         }
 
-        input {
-            flex: 1; background: transparent; border: none; color: white;
-            font-size: 1.1rem; padding: 0 15px; font-family: inherit; outline: none;
+        /* אנימציות */
+        .spin-slow { animation: spin 3s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        /* כפתורי טאבים */
+        .tab-btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s;
+            background: rgba(255,255,255,0.05);
+            color: #94a3b8;
+        }
+        .tab-btn.active {
+            background: var(--accent);
+            color: white;
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
         }
 
-        .icon-btn {
-            width: 45px; height: 45px; border-radius: 50%; border: none;
-            background: rgba(255,255,255,0.1); color: white;
-            font-size: 1.1rem; cursor: pointer; transition: 0.2s;
-            display: flex; align-items: center; justify-content: center;
-        }
-        .icon-btn:active { transform: scale(0.9); background: var(--accent); color: black; }
-        .recording { background: #ff4757 !important; animation: pulse 1s infinite; }
-
-        /* --- כרטיס ראשי (Hero) --- */
-        .hero-section {
-            text-align: center; margin-bottom: 30px;
-            animation: fadeIn 0.8s ease;
-        }
-        .city-name { font-size: 3rem; font-weight: 800; text-shadow: 0 10px 30px rgba(0,0,0,0.5); letter-spacing: -1px; }
-        .live-badge { 
-            background: rgba(0, 255, 0, 0.2); color: #55ff55; padding: 4px 12px; 
-            border-radius: 20px; font-size: 0.8rem; font-weight: bold; text-transform: uppercase;
-            border: 1px solid rgba(0, 255, 0, 0.3); display: inline-block; margin-bottom: 10px;
-        }
-        .temp-display { 
-            font-size: 7.5rem; font-weight: 200; line-height: 1; 
-            background: linear-gradient(to bottom, #fff, #aaa); -webkit-background-clip: text; color: transparent;
-        }
-        .smart-tip {
-            background: rgba(0,0,0,0.4); padding: 8px 20px; border-radius: 12px;
-            display: inline-block; margin-top: 15px; font-size: 0.95rem; border: 1px solid var(--glass-border);
-        }
-
-        /* --- גריד נתונים --- */
-        .bento-grid {
-            display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 25px;
-        }
-        .card {
-            background: var(--glass); padding: 20px; border-radius: var(--card-radius);
-            border: 1px solid var(--glass-border); backdrop-filter: blur(15px);
-            display: flex; flex-direction: column; justify-content: space-between;
-            transition: transform 0.2s; position: relative; overflow: hidden;
-        }
-        .card:active { transform: scale(0.98); }
-        .card-title { font-size: 0.9rem; opacity: 0.7; margin-bottom: 5px; display: flex; align-items: center; gap: 8px; }
-        .card-value { font-size: 1.8rem; font-weight: 700; }
-        .card-sub { font-size: 0.8rem; opacity: 0.5; }
-
-        /* כרטיס רחב למפה */
-        .card.wide { grid-column: span 2; height: 250px; padding: 0; }
-        #map { width: 100%; height: 100%; filter: grayscale(100%) invert(100%) contrast(1.2); }
-
-        /* --- גרפים וגלילה --- */
-        .chart-wrapper {
-            background: rgba(0,0,0,0.3); border-radius: var(--card-radius); padding: 15px;
-            height: 220px; margin-bottom: 25px; border: 1px solid var(--glass-border);
-        }
-        
-        .hourly-scroll {
-            display: flex; overflow-x: auto; gap: 12px; padding-bottom: 10px; scrollbar-width: none;
-        }
-        .hour-pill {
-            min-width: 70px; background: var(--glass); padding: 15px 10px;
-            border-radius: 20px; text-align: center; border: 1px solid var(--glass-border);
-        }
-
-        /* --- אנימציות --- */
-        @keyframes slideDown { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255, 71, 87, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(255, 71, 87, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 71, 87, 0); } }
-
-        /* --- כפתור דיבור --- */
-        .speak-fab {
-            position: fixed; bottom: 20px; left: 20px; width: 60px; height: 60px;
-            background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center;
-            color: black; font-size: 1.5rem; box-shadow: 0 0 30px var(--accent-glow);
-            border: none; cursor: pointer; z-index: 100;
-        }
-
-        /* Loader */
-        .loader {
-            position: fixed; inset: 0; background: black; z-index: 999;
-            display: flex; justify-content: center; align-items: center; transition: opacity 0.5s;
-        }
-        .spinner { width: 60px; height: 60px; border: 4px solid #333; border-top-color: var(--accent); border-radius: 50%; animation: spin 1s infinite linear; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-
+        /* גלילה מוסתרת */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
     </style>
 </head>
-<body>
+<body class="min-h-screen flex flex-col p-4">
 
-    <canvas id="skyCanvas"></canvas>
-    <div id="loader" class="loader"><div class="spinner"></div></div>
-
-    <button class="speak-fab" onclick="speakForecast()" title="הקרא תחזית"><i class="fas fa-volume-up"></i></button>
-
-    <div class="app-layout">
-        <div class="search-deck">
-            <button class="icon-btn" onclick="startVoiceSearch()" id="micBtn"><i class="fas fa-microphone"></i></button>
-            <input type="text" id="cityInput" placeholder="חפש עיר בכל העולם...">
-            <button class="icon-btn" onclick="getLocation()"><i class="fas fa-location-arrow"></i></button>
-            <button class="icon-btn" style="background: var(--accent); color:black;" onclick="initSearch()"><i class="fas fa-search"></i></button>
+    <header class="flex flex-col md:flex-row gap-4 justify-between items-center mb-6">
+        <div class="flex items-center gap-3">
+            <i class="fas fa-satellite-dish text-blue-500 text-2xl spin-slow"></i>
+            <div>
+                <h1 class="text-xl font-bold tracking-wider">PRO METEO <span class="text-blue-500">COMMAND</span></h1>
+                <div class="text-xs text-gray-400" id="systemStatus">SYSTEM ONLINE • V.12.0</div>
+            </div>
         </div>
 
-        <div id="content" style="display:none;">
-            <div class="hero-section">
-                <div class="live-badge">LIVE • מעודכן</div>
-                <div class="city-name" id="cityName">--</div>
-                <div id="weatherDesc" style="font-size: 1.5rem; opacity: 0.9;">--</div>
-                <div class="temp-display"><span id="temp">0</span><span style="font-size:3rem; vertical-align:top">°</span></div>
-                <div class="smart-tip" id="smartTip">🤖 מחשב נתונים...</div>
+        <div class="flex gap-2 w-full md:w-auto">
+            <div class="relative flex-1 md:w-64">
+                <input type="text" id="searchInput" placeholder="Enter Coordinates / City..." 
+                    class="w-full bg-[#1e293b] border border-gray-700 rounded-lg py-2 px-4 focus:outline-none focus:border-blue-500 text-sm">
             </div>
+            <button onclick="executeSearch()" class="bg-blue-600 hover:bg-blue-500 px-4 rounded-lg font-bold transition">
+                SEARCH
+            </button>
+            <button onclick="locateUser()" class="bg-gray-700 hover:bg-gray-600 px-4 rounded-lg transition">
+                <i class="fas fa-location-crosshairs"></i>
+            </button>
+        </div>
+    </header>
 
-            <div class="bento-grid">
-                <div class="card">
-                    <div class="card-title"><i class="fas fa-tint" style="color:#00d2ff"></i> לחות</div>
-                    <div class="card-value"><span id="humidity">--</span>%</div>
-                    <div class="card-sub">נקודת טל: <span id="dewPoint">--</span>°</div>
-                </div>
-                <div class="card">
-                    <div class="card-title"><i class="fas fa-wind" style="color:#a8e6cf"></i> רוח</div>
-                    <div class="card-value"><span id="windSpeed">--</span> <small>קמ"ש</small></div>
-                    <div class="card-sub" id="windDirText">כיוון: --</div>
-                </div>
-                <div class="card">
-                    <div class="card-title"><i class="fas fa-sun" style="color:#ffd32a"></i> UV Index</div>
-                    <div class="card-value" id="uvIndex">--</div>
-                    <div class="card-sub" id="uvText">--</div>
-                </div>
-                <div class="card">
-                    <div class="card-title"><i class="fas fa-eye" style="color:#ff3f34"></i> ראות</div>
-                    <div class="card-value"><span id="visibility">--</span> <small>ק"מ</small></div>
-                    <div class="card-sub">איכות אוויר: <span id="aqi">--</span></div>
-                </div>
+    <main class="grid grid-cols-1 lg:grid-cols-12 gap-4 flex-1">
+        
+        <div class="lg:col-span-4 flex flex-col gap-4">
+            
+            <div class="pro-card p-6 relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
+                <h2 id="cityName" class="text-3xl font-bold mb-1">--</h2>
+                <div id="coords" class="text-xs font-mono text-gray-400 mb-6">LAT: -- | LON: --</div>
                 
-                <div class="card wide">
-                    <div id="map"></div>
+                <div class="flex items-center justify-between">
+                    <div>
+                        <div class="text-6xl font-light text-white"><span id="temp">0</span>°</div>
+                        <div id="weatherDesc" class="text-blue-300 font-medium mt-1">--</div>
+                    </div>
+                    <div id="weatherIcon" class="text-6xl opacity-80">🌤️</div>
                 </div>
             </div>
 
-            <h3 style="margin-bottom:10px; opacity:0.8">מגמת טמפרטורה וגשם</h3>
-            <div class="chart-wrapper">
-                <canvas id="mainChart"></canvas>
+            <div class="grid grid-cols-2 gap-3">
+                <div class="pro-card p-4">
+                    <div class="text-gray-400 text-xs mb-1">WIND</div>
+                    <div class="text-xl font-bold"><span id="wind">--</span> <small>km/h</small></div>
+                    <i class="fas fa-wind text-blue-500/20 absolute bottom-2 left-2 text-3xl"></i>
+                </div>
+                <div class="pro-card p-4">
+                    <div class="text-gray-400 text-xs mb-1">HUMIDITY</div>
+                    <div class="text-xl font-bold"><span id="humidity">--</span>%</div>
+                    <i class="fas fa-tint text-blue-500/20 absolute bottom-2 left-2 text-3xl"></i>
+                </div>
+                <div class="pro-card p-4">
+                    <div class="text-gray-400 text-xs mb-1">VISIBILITY</div>
+                    <div class="text-xl font-bold"><span id="visibility">--</span> <small>km</small></div>
+                </div>
+                <div class="pro-card p-4">
+                    <div class="text-gray-400 text-xs mb-1">UV INDEX</div>
+                    <div class="text-xl font-bold" id="uv">--</div>
+                </div>
             </div>
 
-            <h3 style="margin-bottom:10px; opacity:0.8">24 השעות הבאות</h3>
-            <div class="hourly-scroll" id="hourlyBox"></div>
+            <div class="pro-card p-4 flex-1">
+                <h3 class="text-sm font-bold text-gray-400 mb-3 border-b border-gray-700 pb-2">5-DAY FORECAST</h3>
+                <div id="forecastList" class="space-y-3 text-sm">
+                    </div>
+            </div>
         </div>
+
+        <div class="lg:col-span-8 flex flex-col gap-4">
+            
+            <div class="flex gap-2 bg-[#151b2b] p-2 rounded-lg border border-white/5">
+                <button class="tab-btn active" onclick="switchView('radar')" id="btnRadar">
+                    <i class="fas fa-layer-group"></i> RADAR & MAP
+                </button>
+                <button class="tab-btn" onclick="switchView('cams')" id="btnCams">
+                    <i class="fas fa-video"></i> LIVE CAMS
+                </button>
+            </div>
+
+            <div class="pro-card flex-1 relative min-h-[400px] overflow-hidden">
+                
+                <div id="radarView" class="w-full h-full absolute inset-0">
+                    <div id="radarMap"></div>
+                    <div class="absolute bottom-4 right-4 bg-black/80 p-2 rounded text-xs z-[1000] border border-white/10">
+                        <div class="mb-1">Rain Intensity</div>
+                        <div class="w-32 h-2 rounded-full" style="background: linear-gradient(to right, transparent, #00f, #0f0, #ff0, #f00, #f0f);"></div>
+                    </div>
+                </div>
+
+                <div id="camsView" class="w-full h-full absolute inset-0 hidden bg-black">
+                    <iframe id="webcamFrame" class="cam-frame" src=""></iframe>
+                    <div id="noCamMsg" class="absolute inset-0 flex items-center justify-center hidden">
+                        <div class="text-center">
+                            <i class="fas fa-video-slash text-4xl mb-2 text-gray-600"></i>
+                            <p>Loading Local Cams...</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <div id="loader" class="fixed inset-0 bg-[#0b0f19] z-50 flex flex-col items-center justify-center transition-opacity duration-500">
+        <div class="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+        <div class="mt-4 font-mono text-blue-500 tracking-widest">INITIALIZING SATELLITE...</div>
     </div>
 
     <script>
-        // --- מנוע הליבה (TITAN CORE) ---
-        const appState = {
+        // --- System Core ---
+        const system = {
             map: null,
-            marker: null,
-            chart: null,
-            lastData: null,
-            audioCtx: null
+            radarLayer: null,
+            currentLat: 32.0853,
+            currentLon: 34.7818,
+            currentCity: 'Tel Aviv'
         };
 
-        // אתחול
         window.onload = () => {
             initMap();
-            resizeCanvas();
-            
-            // בדיקה אם יש עיר שמורה
-            const savedCity = localStorage.getItem('titanCity');
-            if (savedCity) {
-                document.getElementById('cityInput').value = savedCity;
-                initSearch();
+            // בדיקה אם יש עיר אחרונה בזיכרון
+            const lastCity = localStorage.getItem('proMeteoCity');
+            if(lastCity) {
+                document.getElementById('searchInput').value = lastCity;
+                executeSearch();
             } else {
-                getLocation(); // אם אין, קח מיקום
+                locateUser();
             }
         };
 
-        // ויברציה
-        const vibrate = () => { if(navigator.vibrate) navigator.vibrate(10); };
+        // --- View Switching (Radar vs Cams) ---
+        function switchView(mode) {
+            const radarView = document.getElementById('radarView');
+            const camsView = document.getElementById('camsView');
+            const btnRadar = document.getElementById('btnRadar');
+            const btnCams = document.getElementById('btnCams');
 
-        // --- מנוע חיפוש ---
-        async function initSearch() {
-            vibrate();
-            const city = document.getElementById('cityInput').value;
-            if(!city) return;
-            
+            if (mode === 'radar') {
+                radarView.classList.remove('hidden');
+                camsView.classList.add('hidden');
+                btnRadar.classList.add('active');
+                btnCams.classList.remove('active');
+                if(system.map) system.map.invalidateSize(); // Fix Leaflet render
+            } else {
+                radarView.classList.add('hidden');
+                camsView.classList.remove('hidden');
+                btnRadar.classList.remove('active');
+                btnCams.classList.add('active');
+                loadWebcams(); // Load cams when tab is clicked
+            }
+        }
+
+        // --- Data Fetching ---
+        async function executeSearch() {
+            const query = document.getElementById('searchInput').value;
+            if(!query) return;
             showLoader(true);
-            try {
-                // שלב 1: גיאוקודינג
-                const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${city}&count=1&language=en&format=json`);
-                const geoData = await geoRes.json();
-                
-                if(!geoData.results) throw new Error("עיר לא נמצאה");
-                
-                const { latitude, longitude, name, country } = geoData.results[0];
-                localStorage.setItem('titanCity', name); // שמירה בזיכרון
-                
-                // שלב 2: הבאת כל הנתונים במכה (Parallel Fetching)
-                await fetchAllData(latitude, longitude, name);
 
-            } catch(e) {
-                alert("שגיאה: " + e.message);
+            try {
+                // Geocoding
+                const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${query}&count=1&language=en&format=json`;
+                const geoRes = await fetch(geoUrl).then(r => r.json());
+                
+                if (!geoRes.results) throw new Error("Target not acquired");
+                
+                const target = geoRes.results[0];
+                system.currentLat = target.latitude;
+                system.currentLon = target.longitude;
+                system.currentCity = target.name;
+                
+                localStorage.setItem('proMeteoCity', target.name);
+
+                // Fetch Weather
+                await fetchWeatherData(target.latitude, target.longitude);
+                
+                // Update UI & Map
+                updateDashboard(target.name, target.latitude, target.longitude);
+                updateMap(target.latitude, target.longitude);
+                
+                // If cams are open, reload them
+                if(!document.getElementById('camsView').classList.contains('hidden')) {
+                    loadWebcams();
+                }
+
+            } catch (error) {
+                alert("SYSTEM ERROR: " + error.message);
+            } finally {
                 showLoader(false);
             }
         }
 
-        async function getLocation() {
-            vibrate();
+        function locateUser() {
+            showLoader(true);
             if(navigator.geolocation) {
-                showLoader(true);
                 navigator.geolocation.getCurrentPosition(pos => {
-                    fetchAllData(pos.coords.latitude, pos.coords.longitude, "המיקום שלי");
-                }, () => { showLoader(false); alert("אין אישור מיקום"); });
+                    system.currentLat = pos.coords.latitude;
+                    system.currentLon = pos.coords.longitude;
+                    system.currentCity = "My Location";
+                    fetchWeatherData(pos.coords.latitude, pos.coords.longitude)
+                        .then(() => {
+                            updateDashboard("My Location", pos.coords.latitude, pos.coords.longitude);
+                            updateMap(pos.coords.latitude, pos.coords.longitude);
+                            showLoader(false);
+                        });
+                }, () => { showLoader(false); alert("GPS Signal Lost"); });
             }
         }
 
-        // --- שליפת נתונים מורכבת ---
-        async function fetchAllData(lat, lon, name) {
-            // URL מפלצתי שמביא הכל כולל הכל
-            const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,weather_code,wind_speed_10m,wind_direction_10m,visibility&hourly=temperature_2m,precipitation_probability,weather_code,uv_index&daily=sunrise,sunset&timezone=auto&forecast_days=2`;
-            const airQualityUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=european_aqi`;
-
-            try {
-                const [wRes, aRes] = await Promise.all([fetch(weatherUrl), fetch(airQualityUrl)]);
-                const wData = await wRes.json();
-                const aData = await aRes.json();
-
-                appState.lastData = { w: wData, a: aData, name }; // שמירה לשימוש בדיבור
-                updateUI(wData, aData, name, lat, lon);
-                
-            } catch(e) { console.error(e); }
-            showLoader(false);
+        async function fetchWeatherData(lat, lon) {
+            const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,visibility,is_day&hourly=uv_index&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto`;
+            const res = await fetch(url);
+            system.weatherData = await res.json();
         }
 
-        // --- עדכון ממשק משתמש ---
-        function updateUI(wData, aData, name, lat, lon) {
-            const cur = wData.current;
-            const daily = wData.daily;
-            
-            // טקסטים
+        // --- UI Updates ---
+        function updateDashboard(name, lat, lon) {
+            const cur = system.weatherData.current;
+            const daily = system.weatherData.daily;
+
             document.getElementById('cityName').innerText = name;
+            document.getElementById('coords').innerText = `LAT: ${lat.toFixed(2)} | LON: ${lon.toFixed(2)}`;
             document.getElementById('temp').innerText = Math.round(cur.temperature_2m);
+            document.getElementById('wind').innerText = cur.wind_speed_10m;
             document.getElementById('humidity').innerText = cur.relative_humidity_2m;
-            document.getElementById('windSpeed').innerText = cur.wind_speed_10m;
             document.getElementById('visibility').innerText = (cur.visibility / 1000).toFixed(1);
-            
-            // המרת כיוון רוח למילים
-            const dirs = ['צפון','צפון-מזרח','מזרח','דרום-מזרח','דרום','דרום-מערב','מערב','צפון-מערב'];
-            const dirIndex = Math.round(cur.wind_direction_10m / 45) % 8;
-            document.getElementById('windDirText').innerText = "כיוון: " + dirs[dirIndex];
+            document.getElementById('uv').innerText = system.weatherData.hourly.uv_index[new Date().getHours()] || '-';
 
-            // UV ואיכות אוויר
-            const uv = wData.hourly.uv_index[new Date().getHours()];
-            document.getElementById('uvIndex').innerText = uv;
-            document.getElementById('uvText').innerText = uv > 5 ? "גבוה - שים קרם!" : "נמוך - בטוח";
-            document.getElementById('aqi').innerText = aData.current.european_aqi;
-            document.getElementById('dewPoint').innerText = Math.round(cur.temperature_2m - ((100 - cur.relative_humidity_2m)/5));
-
-            // תיאור ואייקון
-            const info = getWeatherCodeInfo(cur.weather_code);
+            const info = getWeatherInfo(cur.weather_code, cur.is_day);
             document.getElementById('weatherDesc').innerText = info.desc;
-            
-            // הטיפ החכם
-            generateSmartTip(cur.temperature_2m, cur.weather_code, cur.wind_speed_10m);
+            document.getElementById('weatherIcon').innerText = info.icon;
 
-            // עדכון מפה
-            updateMap(lat, lon);
-
-            // הפעלת אפקטים ויזואליים
-            setVisualEffects(cur.weather_code, cur.is_day);
-
-            // בניית גרף וגלילה
-            buildChart(wData.hourly);
-            buildHourlyScroll(wData.hourly);
-
-            document.getElementById('content').style.display = 'block';
-        }
-
-        function generateSmartTip(temp, code, wind) {
-            let tip = "יום רגיל למדי.";
-            if (code >= 51) tip = "☔ קח מטריה, יורד גשם!";
-            else if (temp < 10) tip = "🧣 קפוא בחוץ, שים מעיל וכפפות.";
-            else if (temp > 30) tip = "🥵 חום אימים, לשתות הרבה מים.";
-            else if (wind > 30) tip = "💨 יש רוח חזקה, שים ג'ל בשיער.";
-            else if (temp > 20 && temp < 25) tip = "👕 מזג אוויר מושלם לחולצה קצרה.";
-            
-            document.getElementById('smartTip').innerText = "🤖 המחשב ממליץ: " + tip;
-        }
-
-        // --- מפה וגרפים ---
-        function initMap() {
-            appState.map = L.map('map', { zoomControl: false }).setView([32, 34], 8);
-            // שימוש באריחים כהים (Dark Matter) למראה הייטקיסטי
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(appState.map);
-        }
-        function updateMap(lat, lon) {
-            appState.map.flyTo([lat, lon], 12);
-            if(appState.marker) appState.map.removeLayer(appState.marker);
-            appState.marker = L.marker([lat, lon]).addTo(appState.map);
-        }
-
-        function buildChart(hourly) {
-            const ctx = document.getElementById('mainChart').getContext('2d');
-            const labels = hourly.time.slice(0, 24).map(t => t.slice(-5));
-            const temps = hourly.temperature_2m.slice(0, 24);
-            const rain = hourly.precipitation_probability.slice(0, 24);
-
-            if(appState.chart) appState.chart.destroy();
-
-            appState.chart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        {
-                            label: 'טמפרטורה',
-                            data: temps,
-                            borderColor: '#00f2ff',
-                            borderWidth: 3,
-                            tension: 0.4,
-                            yAxisID: 'y'
-                        },
-                        {
-                            label: 'סיכוי לגשם %',
-                            data: rain,
-                            backgroundColor: 'rgba(0, 100, 255, 0.3)',
-                            type: 'bar',
-                            yAxisID: 'y1'
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: { display: false },
-                        y: { display: false },
-                        y1: { display: false, max: 100 }
-                    },
-                    plugins: { legend: { display: false } }
-                }
-            });
-        }
-
-        function buildHourlyScroll(hourly) {
-            const box = document.getElementById('hourlyBox');
-            box.innerHTML = '';
-            for(let i=0; i<24; i++) {
-                const t = Math.round(hourly.temperature_2m[i]);
-                const time = hourly.time[i].slice(-5);
-                const code = hourly.weather_code[i];
-                const icon = getWeatherCodeInfo(code).icon;
-                
-                box.innerHTML += `
-                    <div class="hour-pill">
-                        <div>${time}</div>
-                        <div style="font-size:1.4rem; margin:5px 0">${icon}</div>
-                        <div style="font-weight:bold">${t}°</div>
+            // Forecast List
+            const list = document.getElementById('forecastList');
+            list.innerHTML = '';
+            for(let i=1; i<6; i++) {
+                const dayInfo = getWeatherInfo(daily.weather_code[i], 1);
+                const date = new Date(daily.time[i]).toLocaleDateString('en-US', {weekday: 'short', day:'numeric'});
+                list.innerHTML += `
+                    <div class="flex justify-between items-center bg-white/5 p-2 rounded">
+                        <div class="w-20 font-mono text-gray-400">${date}</div>
+                        <div class="text-xl">${dayInfo.icon}</div>
+                        <div class="font-bold">${Math.round(daily.temperature_2m_max[i])}° <span class="text-xs font-normal opacity-50">/ ${Math.round(daily.temperature_2m_min[i])}°</span></div>
                     </div>
                 `;
             }
         }
 
-        // --- מנוע פיזיקה ואנימציה (Canvas) ---
-        const canvas = document.getElementById('skyCanvas');
-        const ctx = canvas.getContext('2d');
-        let particles = [];
-        
-        function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
-        window.onresize = resizeCanvas;
-
-        function setVisualEffects(code, isDay) {
-            particles = [];
-            // רקע
-            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-            if(isDay) {
-                if(code <= 3) { gradient.addColorStop(0, '#2980b9'); gradient.addColorStop(1, '#6dd5fa'); } // יום יפה
-                else { gradient.addColorStop(0, '#636fa4'); gradient.addColorStop(1, '#e8cbc0'); } // מעונן
-            } else {
-                gradient.addColorStop(0, '#0f2027'); gradient.addColorStop(1, '#2c5364'); // לילה
-            }
-            // גשם או שלג
-            if(code >= 51) { // Rain
-                 document.body.style.background = "#050505";
-                 initParticles('rain', 150);
-            } else if (code >= 71) { // Snow
-                 initParticles('snow', 80);
-            } else {
-                // נקה קנבס אם אין גשם וצייר רקע
-                canvas.style.background = isDay ? "linear-gradient(to bottom, #2980b9, #6dd5fa)" : "linear-gradient(to bottom, #0f2027, #2c5364)";
-                return; 
-            }
+        // --- Map & Radar Engine ---
+        function initMap() {
+            // יצירת מפה כהה
+            system.map = L.map('radarMap', {zoomControl: false}).setView([32, 34], 8);
             
-            canvas.style.background = ''; // אפס רקע CSS כדי שהקנבס יעבוד
-            animate();
+            // שכבת בסיס כהה (CartoDB Dark)
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                maxZoom: 18
+            }).addTo(system.map);
+
+            // שכבת מכ"ם גשם (RainViewer)
+            // טיפ מקצועי: אנחנו מוסיפים שכבת זמן אמת
+            L.tileLayer('https://tile.rainviewer.com/img/radar_nowcast_10min/256/{z}/{x}/{y}/2/1_1.png', {
+                opacity: 0.7,
+                zIndex: 10
+            }).addTo(system.map);
             
-            function initParticles(type, count) {
-                for(let i=0; i<count; i++) {
-                    particles.push({
-                        x: Math.random() * canvas.width,
-                        y: Math.random() * canvas.height,
-                        speed: Math.random() * 5 + 2,
-                        length: Math.random() * 20 + 10,
-                        type: type
-                    });
-                }
-            }
-
-            function animate() {
-                ctx.fillStyle = isDay ? "#555" : "#111"; // צבע רקע בסיס
-                ctx.fillRect(0, 0, canvas.width, canvas.height); // ניקוי
-                
-                // ציור הגרדיינט
-                ctx.fillStyle = gradient;
-                ctx.fillRect(0,0, canvas.width, canvas.height);
-
-                ctx.strokeStyle = 'rgba(174, 194, 224, 0.6)';
-                ctx.fillStyle = 'white';
-                ctx.lineWidth = 2;
-
-                particles.forEach(p => {
-                    if(p.type === 'rain') {
-                        ctx.beginPath();
-                        ctx.moveTo(p.x, p.y);
-                        ctx.lineTo(p.x, p.y + p.length);
-                        ctx.stroke();
-                        p.y += p.speed * 4;
-                    } else { // Snow
-                        ctx.beginPath();
-                        ctx.arc(p.x, p.y, p.length/5, 0, Math.PI*2);
-                        ctx.fill();
-                        p.y += p.speed / 2;
-                        p.x += Math.sin(p.y / 20); // נדנוד
-                    }
-                    if(p.y > canvas.height) { p.y = -20; p.x = Math.random() * canvas.width; }
-                });
-                requestAnimationFrame(animate);
-            }
+            // שכבת עננים (OpenWeatherMap - חינמי בסיסי או דומה)
+            // כאן נשתמש ב-RainViewer כיסוי לווין
+            L.tileLayer('https://tile.rainviewer.com/img/satellite-drs/256/{z}/{x}/{y}/0/0_0.png', {
+                opacity: 0.4
+            }).addTo(system.map);
         }
 
-        // --- דיבור והקראה (Speech) ---
-        function startVoiceSearch() {
-            vibrate();
-            const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-            recognition.lang = 'en-US'; // עדיף לאנגלית עבור שמות ערים
-            document.getElementById('micBtn').classList.add('recording');
+        function updateMap(lat, lon) {
+            system.map.flyTo([lat, lon], 9, { animate: true, duration: 1.5 });
             
-            recognition.onresult = (e) => {
-                document.getElementById('cityInput').value = e.results[0][0].transcript;
-                initSearch();
+            // ניקוי מרקרים
+            system.map.eachLayer((layer) => {
+                if(layer instanceof L.Marker) system.map.removeLayer(layer);
+            });
+
+            // הוספת מרקר פועם
+            const icon = L.divIcon({
+                className: 'custom-div-icon',
+                html: "<div style='background-color:#3b82f6; width:12px; height:12px; border-radius:50%; box-shadow:0 0 10px #3b82f6; border:2px solid white;'></div>",
+                iconSize: [30, 42],
+                iconAnchor: [15, 42]
+            });
+            
+            L.marker([lat, lon], {icon: icon}).addTo(system.map);
+        }
+
+        // --- Webcams Integration ---
+        function loadWebcams() {
+            const frame = document.getElementById('webcamFrame');
+            // שימוש ב-Windy Embed API הוא הדרך הכי אמינה לקבל מצלמות מכל העולם בחינם
+            // אנחנו מכוונים את ה-iframe לקואורדינטות הנוכחיות
+            const lat = system.currentLat;
+            const lon = system.currentLon;
+            
+            // כתובת URL חכמה שמציגה את שכבת המצלמות של Windy
+            const windyUrl = `https://embed.windy.com/embed2.html?lat=${lat}&lon=${lon}&detailLat=${lat}&detailLon=${lon}&width=650&height=450&zoom=11&level=surface&overlay=cams&product=radar&menu=&message=&marker=&calendar=now&pressure=&type=map&location=coordinates&detail=&metricWind=default&metricTemp=default&radarRange=-1`;
+            
+            frame.src = windyUrl;
+        }
+
+        // --- Utilities ---
+        function getWeatherInfo(code, isDay) {
+            const codes = {
+                0: {d:"Clear Sky", n:"Clear Sky", i:"☀️"},
+                1: {d:"Mainly Clear", n:"Mainly Clear", i:"🌤️"},
+                2: {d:"Partly Cloudy", n:"Partly Cloudy", i:"⛅"},
+                3: {d:"Overcast", n:"Overcast", i:"☁️"},
+                45: {d:"Fog", n:"Fog", i:"🌫️"},
+                51: {d:"Drizzle", n:"Drizzle", i:"🌧️"},
+                61: {d:"Rain", n:"Rain", i:"☔"},
+                71: {d:"Snow", n:"Snow", i:"❄️"},
+                95: {d:"Thunderstorm", n:"Thunderstorm", i:"⛈️"}
             };
-            recognition.onend = () => document.getElementById('micBtn').classList.remove('recording');
-            recognition.start();
+            const def = codes[code] || codes[0];
+            return { desc: def.d, icon: def.i }; // Simplified for Pro look
         }
 
-        function speakForecast() {
-            vibrate();
-            if(!appState.lastData) return;
-            const d = appState.lastData.w.current;
-            const text = `התחזית ב${document.getElementById('cityName').innerText}: הטמפרטורה היא ${Math.round(d.temperature_2m)} מעלות, ${document.getElementById('weatherDesc').innerText}.`;
-            
-            const speech = new SpeechSynthesisUtterance(text);
-            speech.lang = 'he-IL';
-            speech.rate = 0.9;
-            window.speechSynthesis.speak(speech);
+        function showLoader(show) {
+            const el = document.getElementById('loader');
+            if(show) { el.classList.remove('opacity-0', 'pointer-events-none'); }
+            else { el.classList.add('opacity-0', 'pointer-events-none'); }
         }
-
-        // --- עזרים ---
-        function getWeatherCodeInfo(code) {
-            const map = {
-                0: {d: "בהיר לחלוטין", i:"☀️"}, 1: {d: "בעיקר בהיר", i:"🌤️"}, 2: {d: "מעונן חלקית", i:"⛅"},
-                3: {d: "מעונן", i:"☁️"}, 45: {d: "ערפל", i:"🌫️"}, 51: {d: "טיפטוף", i:"🌧️"},
-                61: {d: "גשם", i:"🌧️"}, 71: {d: "שלג", i:"❄️"}, 95: {d: "סופת רעמים", i:"⛈️"}
-            };
-            return map[code] || {d: "לא ידוע", i:"❓"};
-        }
-        function showLoader(b) { document.getElementById('loader').style.opacity = b?1:0; if(!b) setTimeout(()=>document.getElementById('loader').style.zIndex=-1, 500); else document.getElementById('loader').style.zIndex=999; }
     </script>
 </body>
 </html>
