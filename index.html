@@ -2,408 +2,534 @@
 <html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PRO METEO COMMAND 🛰️</title>
-    
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;800&display=swap" rel="stylesheet">
-
+    <title>Ultra Boxing Sim V2.0</title>
     <style>
-        :root {
-            --bg-dark: #0b0f19;
-            --panel: #151b2b;
-            --accent: #3b82f6;
-            --text-main: #e2e8f0;
-        }
-
         body {
-            background-color: var(--bg-dark);
-            color: var(--text-main);
-            font-family: 'Assistant', sans-serif;
-            overflow-x: hidden;
-        }
-
-        /* עיצוב כרטיסים מקצועי */
-        .pro-card {
-            background-color: var(--panel);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-            transition: transform 0.2s;
-        }
-
-        /* מפת המכ"ם */
-        #radarMap {
-            height: 100%;
-            width: 100%;
-            border-radius: 12px;
-            z-index: 1;
-        }
-
-        /* מסגרת למצלמות */
-        .cam-frame {
-            width: 100%;
-            height: 100%;
-            border: none;
-            border-radius: 12px;
-        }
-
-        /* אנימציות */
-        .spin-slow { animation: spin 3s linear infinite; }
-        @keyframes spin { 100% { transform: rotate(360deg); } }
-
-        /* כפתורי טאבים */
-        .tab-btn {
-            padding: 8px 16px;
-            border-radius: 8px;
-            font-weight: 600;
-            transition: all 0.3s;
-            background: rgba(255,255,255,0.05);
-            color: #94a3b8;
-        }
-        .tab-btn.active {
-            background: var(--accent);
+            margin: 0;
+            background: #050505;
             color: white;
-            box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
+            font-family: 'Segoe UI', sans-serif;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
         }
-
-        /* גלילה מוסתרת */
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+        canvas {
+            box-shadow: 0 0 100px rgba(0,0,0,0.9);
+            border-top: 5px solid #333;
+            border-bottom: 5px solid #333;
+            background: linear-gradient(to bottom, #1a1a1a 0%, #000 100%);
+        }
+        #ui {
+            position: absolute;
+            top: 20px;
+            width: 900px;
+            display: flex;
+            justify-content: space-between;
+            pointer-events: none;
+            text-transform: uppercase;
+            font-weight: 900;
+            letter-spacing: 2px;
+        }
+        .fighter-hud { width: 40%; position: relative; }
+        .bar-bg { height: 25px; background: #333; transform: skewX(-20deg); border: 2px solid #555; overflow: hidden; }
+        .hp-bar { height: 100%; width: 100%; background: #e74c3c; transition: width 0.1s linear; box-shadow: 0 0 15px #e74c3c; }
+        .stamina-bg { height: 10px; width: 80%; background: #222; margin-top: 5px; transform: skewX(-20deg); border: 1px solid #444; }
+        .st-bar { height: 100%; width: 100%; background: #f1c40f; transition: width 0.1s; }
+        .name { font-size: 30px; margin-bottom: 5px; text-shadow: 2px 2px 0 #000; font-style: italic; }
+        
+        #overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            pointer-events: none;
+        }
+        #big-text {
+            font-size: 100px;
+            font-weight: 900;
+            color: #fff;
+            text-shadow: 0 0 30px rgba(255,255,255,0.8);
+            transform: scale(0);
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .controls {
+            position: absolute;
+            bottom: 10px;
+            color: #666;
+            font-size: 12px;
+            text-align: center;
+            width: 100%;
+        }
+        .key { display: inline-block; padding: 2px 6px; border: 1px solid #666; border-radius: 4px; color: #aaa; }
     </style>
 </head>
-<body class="min-h-screen flex flex-col p-4">
+<body>
 
-    <header class="flex flex-col md:flex-row gap-4 justify-between items-center mb-6">
-        <div class="flex items-center gap-3">
-            <i class="fas fa-satellite-dish text-blue-500 text-2xl spin-slow"></i>
-            <div>
-                <h1 class="text-xl font-bold tracking-wider">PRO METEO <span class="text-blue-500">COMMAND</span></h1>
-                <div class="text-xs text-gray-400" id="systemStatus">SYSTEM ONLINE • V.12.0</div>
-            </div>
-        </div>
-
-        <div class="flex gap-2 w-full md:w-auto">
-            <div class="relative flex-1 md:w-64">
-                <input type="text" id="searchInput" placeholder="Enter Coordinates / City..." 
-                    class="w-full bg-[#1e293b] border border-gray-700 rounded-lg py-2 px-4 focus:outline-none focus:border-blue-500 text-sm">
-            </div>
-            <button onclick="executeSearch()" class="bg-blue-600 hover:bg-blue-500 px-4 rounded-lg font-bold transition">
-                SEARCH
-            </button>
-            <button onclick="locateUser()" class="bg-gray-700 hover:bg-gray-600 px-4 rounded-lg transition">
-                <i class="fas fa-location-crosshairs"></i>
-            </button>
-        </div>
-    </header>
-
-    <main class="grid grid-cols-1 lg:grid-cols-12 gap-4 flex-1">
-        
-        <div class="lg:col-span-4 flex flex-col gap-4">
-            
-            <div class="pro-card p-6 relative overflow-hidden">
-                <div class="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
-                <h2 id="cityName" class="text-3xl font-bold mb-1">--</h2>
-                <div id="coords" class="text-xs font-mono text-gray-400 mb-6">LAT: -- | LON: --</div>
-                
-                <div class="flex items-center justify-between">
-                    <div>
-                        <div class="text-6xl font-light text-white"><span id="temp">0</span>°</div>
-                        <div id="weatherDesc" class="text-blue-300 font-medium mt-1">--</div>
-                    </div>
-                    <div id="weatherIcon" class="text-6xl opacity-80">🌤️</div>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-3">
-                <div class="pro-card p-4">
-                    <div class="text-gray-400 text-xs mb-1">WIND</div>
-                    <div class="text-xl font-bold"><span id="wind">--</span> <small>km/h</small></div>
-                    <i class="fas fa-wind text-blue-500/20 absolute bottom-2 left-2 text-3xl"></i>
-                </div>
-                <div class="pro-card p-4">
-                    <div class="text-gray-400 text-xs mb-1">HUMIDITY</div>
-                    <div class="text-xl font-bold"><span id="humidity">--</span>%</div>
-                    <i class="fas fa-tint text-blue-500/20 absolute bottom-2 left-2 text-3xl"></i>
-                </div>
-                <div class="pro-card p-4">
-                    <div class="text-gray-400 text-xs mb-1">VISIBILITY</div>
-                    <div class="text-xl font-bold"><span id="visibility">--</span> <small>km</small></div>
-                </div>
-                <div class="pro-card p-4">
-                    <div class="text-gray-400 text-xs mb-1">UV INDEX</div>
-                    <div class="text-xl font-bold" id="uv">--</div>
-                </div>
-            </div>
-
-            <div class="pro-card p-4 flex-1">
-                <h3 class="text-sm font-bold text-gray-400 mb-3 border-b border-gray-700 pb-2">5-DAY FORECAST</h3>
-                <div id="forecastList" class="space-y-3 text-sm">
-                    </div>
-            </div>
-        </div>
-
-        <div class="lg:col-span-8 flex flex-col gap-4">
-            
-            <div class="flex gap-2 bg-[#151b2b] p-2 rounded-lg border border-white/5">
-                <button class="tab-btn active" onclick="switchView('radar')" id="btnRadar">
-                    <i class="fas fa-layer-group"></i> RADAR & MAP
-                </button>
-                <button class="tab-btn" onclick="switchView('cams')" id="btnCams">
-                    <i class="fas fa-video"></i> LIVE CAMS
-                </button>
-            </div>
-
-            <div class="pro-card flex-1 relative min-h-[400px] overflow-hidden">
-                
-                <div id="radarView" class="w-full h-full absolute inset-0">
-                    <div id="radarMap"></div>
-                    <div class="absolute bottom-4 right-4 bg-black/80 p-2 rounded text-xs z-[1000] border border-white/10">
-                        <div class="mb-1">Rain Intensity</div>
-                        <div class="w-32 h-2 rounded-full" style="background: linear-gradient(to right, transparent, #00f, #0f0, #ff0, #f00, #f0f);"></div>
-                    </div>
-                </div>
-
-                <div id="camsView" class="w-full h-full absolute inset-0 hidden bg-black">
-                    <iframe id="webcamFrame" class="cam-frame" src=""></iframe>
-                    <div id="noCamMsg" class="absolute inset-0 flex items-center justify-center hidden">
-                        <div class="text-center">
-                            <i class="fas fa-video-slash text-4xl mb-2 text-gray-600"></i>
-                            <p>Loading Local Cams...</p>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-        </div>
-    </main>
-
-    <div id="loader" class="fixed inset-0 bg-[#0b0f19] z-50 flex flex-col items-center justify-center transition-opacity duration-500">
-        <div class="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-        <div class="mt-4 font-mono text-blue-500 tracking-widest">INITIALIZING SATELLITE...</div>
+<div id="ui">
+    <div class="fighter-hud">
+        <div class="name" style="color:#3498db">PLAYER 1</div>
+        <div class="bar-bg"><div id="hp1" class="hp-bar"></div></div>
+        <div class="stamina-bg"><div id="st1" class="st-bar"></div></div>
     </div>
+    <div class="fighter-hud" style="text-align:right">
+        <div class="name" style="color:#e74c3c">CPU CHAMP</div>
+        <div class="bar-bg"><div id="hp2" class="hp-bar" style="float:right"></div></div>
+        <div style="clear:both"></div>
+        <div class="stamina-bg" style="float:right"><div id="st2" class="st-bar" style="float:right"></div></div>
+    </div>
+</div>
 
-    <script>
-        // --- System Core ---
-        const system = {
-            map: null,
-            radarLayer: null,
-            currentLat: 32.0853,
-            currentLon: 34.7818,
-            currentCity: 'Tel Aviv'
-        };
+<div id="overlay"><div id="big-text">KO!</div></div>
+<canvas id="game" width="900" height="500"></canvas>
+<div class="controls">
+    זוז: <span class="key">Arrows</span> | מכה: <span class="key">Z</span> | מכה חזקה: <span class="key">C</span> | הגנה: <span class="key">X</span> | אתחול: <span class="key">R</span>
+</div>
 
-        window.onload = () => {
-            initMap();
-            // בדיקה אם יש עיר אחרונה בזיכרון
-            const lastCity = localStorage.getItem('proMeteoCity');
-            if(lastCity) {
-                document.getElementById('searchInput').value = lastCity;
-                executeSearch();
+<script>
+/**
+ * ULTRA BOXING ENGINE V2
+ * Includes: Particle System, Screen Shake, Procedural Animation, Dynamic AI
+ */
+
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+
+// --- הגדרות מנוע ---
+const GRAVITY = 0;
+const GROUND_Y = 380;
+let timeScale = 1.0; // לשליטה בהילוך איטי
+let shakeIntensity = 0;
+
+// --- חלקיקים ואפקטים ---
+let particles = [];
+let floatingTexts = [];
+
+class Particle {
+    constructor(x, y, color, speed) {
+        this.x = x;
+        this.y = y;
+        this.vx = (Math.random() - 0.5) * speed;
+        this.vy = (Math.random() - 0.5) * speed;
+        this.life = 1.0;
+        this.color = color;
+        this.size = Math.random() * 4 + 2;
+    }
+    update() {
+        this.x += this.vx * timeScale;
+        this.y += this.vy * timeScale;
+        this.vy += 0.2 * timeScale; // כוח משיכה לחלקיקים
+        this.life -= 0.03 * timeScale;
+    }
+    draw(ctx) {
+        ctx.globalAlpha = this.life;
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
+        ctx.fill();
+        ctx.globalAlpha = 1.0;
+    }
+}
+
+class FloatingText {
+    constructor(x, y, text, color) {
+        this.x = x;
+        this.y = y;
+        this.text = text;
+        this.color = color;
+        this.life = 1.0;
+        this.vy = -2;
+    }
+    update() {
+        this.y += this.vy * timeScale;
+        this.life -= 0.02 * timeScale;
+    }
+    draw(ctx) {
+        ctx.globalAlpha = this.life;
+        ctx.fillStyle = this.color;
+        ctx.font = "bold 24px Arial";
+        ctx.strokeStyle = "black";
+        ctx.lineWidth = 3;
+        ctx.strokeText(this.text, this.x, this.y);
+        ctx.fillText(this.text, this.x, this.y);
+        ctx.globalAlpha = 1.0;
+    }
+}
+
+function spawnParticles(x, y, count, color) {
+    for(let i=0; i<count; i++) {
+        particles.push(new Particle(x, y, color, 10));
+    }
+}
+
+function spawnText(x, y, text, color) {
+    floatingTexts.push(new FloatingText(x, y, text, color));
+}
+
+// --- מחלקת לוחם ---
+class Fighter {
+    constructor(x, isAI, color) {
+        this.x = x;
+        this.y = GROUND_Y;
+        this.vx = 0;
+        this.width = 40;
+        this.height = 100;
+        this.color = color;
+        this.isAI = isAI;
+        this.facing = isAI ? -1 : 1;
+        
+        // Stats
+        this.hp = 100;
+        this.maxHp = 100;
+        this.stamina = 100;
+        
+        // State
+        this.state = 'idle'; // idle, move, attack, block, hit, ko
+        this.frame = 0;
+        this.punchType = 'none'; // light, heavy
+        this.blockTimer = 0;
+        
+        // Animation Vars
+        this.animOffset = 0;
+        this.gloveExtension = 0;
+    }
+
+    update(target) {
+        if (this.state === 'ko') return;
+
+        // Stamina Regen
+        if (this.state === 'idle' || this.state === 'move') {
+            if (this.stamina < 100) this.stamina += 0.4 * timeScale;
+        }
+
+        // Physics & Movement
+        this.x += this.vx * timeScale;
+        
+        // Friction
+        this.vx *= 0.8;
+
+        // Breathe Animation
+        this.animOffset += 0.1 * timeScale;
+        
+        // Boundaries
+        if (this.x < 20) this.x = 20;
+        if (this.x > 880) this.x = 880;
+
+        // Cooldowns
+        if (this.frame > 0) this.frame -= 1 * timeScale;
+        else if (this.state === 'attack' || this.state === 'hit') {
+            this.state = 'idle';
+            this.gloveExtension = 0;
+        }
+
+        if (this.isAI) this.aiLogic(target);
+    }
+
+    aiLogic(target) {
+        const dist = Math.abs(this.x - target.x);
+        const range = 90;
+
+        // Always face target
+        this.facing = (target.x > this.x) ? 1 : -1;
+
+        if (this.state === 'hit' || this.state === 'attack') return;
+
+        // React to player attack
+        if (target.state === 'attack' && dist < 120 && Math.random() < 0.05) {
+            this.state = 'block';
+            this.frame = 20;
+            return;
+        }
+
+        // Release block
+        if (this.state === 'block' && target.state !== 'attack') {
+            this.state = 'idle';
+        }
+
+        // Offensive
+        if (dist < range) {
+            if (this.stamina > 20 && Math.random() < 0.08) {
+                this.attack(target, Math.random() > 0.7 ? 'heavy' : 'light');
+            } else if (this.stamina < 30) {
+                 // Retreat
+                 this.vx = -3 * this.facing;
+                 this.state = 'move';
+            }
+        } else {
+            // Approach
+            this.vx = 2.5 * this.facing;
+            this.state = 'move';
+        }
+    }
+
+    attack(target, type) {
+        if (this.state !== 'idle' && this.state !== 'move') return;
+        
+        let cost = (type === 'heavy') ? 35 : 15;
+        if (this.stamina < cost) return;
+
+        this.stamina -= cost;
+        this.state = 'attack';
+        this.punchType = type;
+        this.frame = (type === 'heavy') ? 25 : 15;
+        
+        // Sound & Visuals handled in draw mainly, logic here:
+        // Hit check delayed slightly for "impact" feel
+        setTimeout(() => {
+            if (this.state !== 'attack') return; // Interrupted
+            this.checkHit(target, type);
+        }, (type === 'heavy' ? 200 : 100) / timeScale); // Scale timeout logic roughly
+    }
+
+    checkHit(target, type) {
+        const reach = (type === 'heavy') ? 100 : 70;
+        const dist = Math.abs(this.x - target.x);
+        
+        // Hitbox logic
+        if (dist < reach && (this.facing === 1 && target.x > this.x || this.facing === -1 && target.x < this.x)) {
+            
+            let damage = (type === 'heavy') ? 25 : 8;
+            let blocked = false;
+
+            if (target.state === 'block') {
+                blocked = true;
+                damage *= 0.1;
+                target.stamina -= 10;
+                spawnParticles(target.x, target.y - 60, 5, "#fff"); // Sparks
+                spawnText(target.x, target.y - 120, "BLOCKED", "#aaa");
             } else {
-                locateUser();
-            }
-        };
-
-        // --- View Switching (Radar vs Cams) ---
-        function switchView(mode) {
-            const radarView = document.getElementById('radarView');
-            const camsView = document.getElementById('camsView');
-            const btnRadar = document.getElementById('btnRadar');
-            const btnCams = document.getElementById('btnCams');
-
-            if (mode === 'radar') {
-                radarView.classList.remove('hidden');
-                camsView.classList.add('hidden');
-                btnRadar.classList.add('active');
-                btnCams.classList.remove('active');
-                if(system.map) system.map.invalidateSize(); // Fix Leaflet render
-            } else {
-                radarView.classList.add('hidden');
-                camsView.classList.remove('hidden');
-                btnRadar.classList.remove('active');
-                btnCams.classList.add('active');
-                loadWebcams(); // Load cams when tab is clicked
+                spawnParticles(target.x, target.y - 80, 15, "#e74c3c"); // Blood/Sweat
+                spawnText(target.x, target.y - 120, Math.floor(damage), "#ff0000");
+                
+                // IMPACT
+                shakeIntensity = (type === 'heavy') ? 15 : 5;
+                target.takeDamage(damage, this.facing, type);
             }
         }
+    }
 
-        // --- Data Fetching ---
-        async function executeSearch() {
-            const query = document.getElementById('searchInput').value;
-            if(!query) return;
-            showLoader(true);
+    takeDamage(amount, hitterDir, type) {
+        this.hp -= amount;
+        this.state = 'hit';
+        this.frame = 15;
+        this.vx = hitterDir * (type === 'heavy' ? 10 : 5); // Knockback
+        
+        if (this.hp <= 0) {
+            this.hp = 0;
+            this.state = 'ko';
+            startSlowMo();
+        }
+    }
 
-            try {
-                // Geocoding
-                const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${query}&count=1&language=en&format=json`;
-                const geoRes = await fetch(geoUrl).then(r => r.json());
-                
-                if (!geoRes.results) throw new Error("Target not acquired");
-                
-                const target = geoRes.results[0];
-                system.currentLat = target.latitude;
-                system.currentLon = target.longitude;
-                system.currentCity = target.name;
-                
-                localStorage.setItem('proMeteoCity', target.name);
+    draw(ctx) {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        
+        // Breathe Bobbing
+        let bob = Math.sin(this.animOffset) * 2;
+        if (this.state === 'ko') bob = 50; // Lying down offset
 
-                // Fetch Weather
-                await fetchWeatherData(target.latitude, target.longitude);
-                
-                // Update UI & Map
-                updateDashboard(target.name, target.latitude, target.longitude);
-                updateMap(target.latitude, target.longitude);
-                
-                // If cams are open, reload them
-                if(!document.getElementById('camsView').classList.contains('hidden')) {
-                    loadWebcams();
-                }
-
-            } catch (error) {
-                alert("SYSTEM ERROR: " + error.message);
-            } finally {
-                showLoader(false);
-            }
+        // Rotation for KO
+        if (this.state === 'ko') {
+            ctx.rotate(this.facing * Math.PI / 2);
+            ctx.translate(0, -20);
         }
 
-        function locateUser() {
-            showLoader(true);
-            if(navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(pos => {
-                    system.currentLat = pos.coords.latitude;
-                    system.currentLon = pos.coords.longitude;
-                    system.currentCity = "My Location";
-                    fetchWeatherData(pos.coords.latitude, pos.coords.longitude)
-                        .then(() => {
-                            updateDashboard("My Location", pos.coords.latitude, pos.coords.longitude);
-                            updateMap(pos.coords.latitude, pos.coords.longitude);
-                            showLoader(false);
-                        });
-                }, () => { showLoader(false); alert("GPS Signal Lost"); });
-            }
+        // Color Setup
+        const skinColor = "#ffdbac";
+        const gloveColor = "#c0392b";
+        const shortsColor = this.color;
+
+        // --- DRAW BODY PROCEDURALLY ---
+        
+        // Legs
+        ctx.fillStyle = "#222";
+        ctx.fillRect(-15, -40 + bob, 10, 40); // Back Leg
+        ctx.fillRect(5, -40 + bob, 10, 40);  // Front Leg
+
+        // Torso
+        ctx.fillStyle = skinColor;
+        ctx.fillRect(-15, -90 + bob, 30, 50);
+        
+        // Shorts
+        ctx.fillStyle = shortsColor;
+        ctx.fillRect(-16, -55 + bob, 32, 20);
+
+        // Head
+        ctx.fillStyle = skinColor;
+        ctx.beginPath();
+        ctx.arc(0, -100 + bob, 12, 0, Math.PI*2);
+        ctx.fill();
+
+        // Arms Logic
+        let armX = 15 * this.facing;
+        let armY = -85 + bob;
+        
+        // Attack Animation Calculation
+        let extend = 0;
+        if (this.state === 'attack') {
+            // Simple ease-out for punch
+            const maxFrame = (this.punchType === 'heavy') ? 25 : 15;
+            const progress = 1 - (this.frame / maxFrame);
+            if (progress < 0.5) extend = progress * 80;
+            else extend = (1 - progress) * 80;
         }
 
-        async function fetchWeatherData(lat, lon) {
-            const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,visibility,is_day&hourly=uv_index&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto`;
-            const res = await fetch(url);
-            system.weatherData = await res.json();
+        // Block Position
+        if (this.state === 'block') {
+            armX = 10 * this.facing;
+            armY = -95 + bob;
         }
 
-        // --- UI Updates ---
-        function updateDashboard(name, lat, lon) {
-            const cur = system.weatherData.current;
-            const daily = system.weatherData.daily;
+        // Back Arm
+        ctx.fillStyle = skinColor;
+        ctx.fillRect(-10, -90 + bob, 10, 30);
+        ctx.fillStyle = gloveColor;
+        ctx.beginPath();
+        ctx.arc(-5 + (this.facing * 5), -75 + bob, 12, 0, Math.PI*2);
+        ctx.fill();
 
-            document.getElementById('cityName').innerText = name;
-            document.getElementById('coords').innerText = `LAT: ${lat.toFixed(2)} | LON: ${lon.toFixed(2)}`;
-            document.getElementById('temp').innerText = Math.round(cur.temperature_2m);
-            document.getElementById('wind').innerText = cur.wind_speed_10m;
-            document.getElementById('humidity').innerText = cur.relative_humidity_2m;
-            document.getElementById('visibility').innerText = (cur.visibility / 1000).toFixed(1);
-            document.getElementById('uv').innerText = system.weatherData.hourly.uv_index[new Date().getHours()] || '-';
-
-            const info = getWeatherInfo(cur.weather_code, cur.is_day);
-            document.getElementById('weatherDesc').innerText = info.desc;
-            document.getElementById('weatherIcon').innerText = info.icon;
-
-            // Forecast List
-            const list = document.getElementById('forecastList');
-            list.innerHTML = '';
-            for(let i=1; i<6; i++) {
-                const dayInfo = getWeatherInfo(daily.weather_code[i], 1);
-                const date = new Date(daily.time[i]).toLocaleDateString('en-US', {weekday: 'short', day:'numeric'});
-                list.innerHTML += `
-                    <div class="flex justify-between items-center bg-white/5 p-2 rounded">
-                        <div class="w-20 font-mono text-gray-400">${date}</div>
-                        <div class="text-xl">${dayInfo.icon}</div>
-                        <div class="font-bold">${Math.round(daily.temperature_2m_max[i])}° <span class="text-xs font-normal opacity-50">/ ${Math.round(daily.temperature_2m_min[i])}°</span></div>
-                    </div>
-                `;
-            }
+        // Front Arm (Punching Arm)
+        ctx.fillStyle = skinColor;
+        // Shoulder
+        ctx.beginPath();
+        ctx.arc(0, -90 + bob, 8, 0, Math.PI*2);
+        ctx.fill();
+        
+        // Glove
+        ctx.fillStyle = gloveColor;
+        let gloveX = (this.facing * 20) + (this.facing * extend);
+        let gloveY = -80 + bob;
+        
+        if (this.state === 'block') {
+            gloveX = this.facing * 15;
+            gloveY = -105 + bob;
         }
 
-        // --- Map & Radar Engine ---
-        function initMap() {
-            // יצירת מפה כהה
-            system.map = L.map('radarMap', {zoomControl: false}).setView([32, 34], 8);
-            
-            // שכבת בסיס כהה (CartoDB Dark)
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-                maxZoom: 18
-            }).addTo(system.map);
+        ctx.beginPath();
+        ctx.arc(gloveX, gloveY, 14, 0, Math.PI*2);
+        ctx.fill();
+        // Glove shine
+        ctx.fillStyle = "rgba(255,255,255,0.3)";
+        ctx.beginPath();
+        ctx.arc(gloveX - 2, gloveY - 2, 5, 0, Math.PI*2);
+        ctx.fill();
 
-            // שכבת מכ"ם גשם (RainViewer)
-            // טיפ מקצועי: אנחנו מוסיפים שכבת זמן אמת
-            L.tileLayer('https://tile.rainviewer.com/img/radar_nowcast_10min/256/{z}/{x}/{y}/2/1_1.png', {
-                opacity: 0.7,
-                zIndex: 10
-            }).addTo(system.map);
-            
-            // שכבת עננים (OpenWeatherMap - חינמי בסיסי או דומה)
-            // כאן נשתמש ב-RainViewer כיסוי לווין
-            L.tileLayer('https://tile.rainviewer.com/img/satellite-drs/256/{z}/{x}/{y}/0/0_0.png', {
-                opacity: 0.4
-            }).addTo(system.map);
-        }
+        ctx.restore();
+    }
+}
 
-        function updateMap(lat, lon) {
-            system.map.flyTo([lat, lon], 9, { animate: true, duration: 1.5 });
-            
-            // ניקוי מרקרים
-            system.map.eachLayer((layer) => {
-                if(layer instanceof L.Marker) system.map.removeLayer(layer);
-            });
+// --- משתני משחק גלובליים ---
+const p1 = new Fighter(200, false, "#3498db");
+const p2 = new Fighter(700, true, "#e74c3c");
+let keys = {};
+let gameOver = false;
 
-            // הוספת מרקר פועם
-            const icon = L.divIcon({
-                className: 'custom-div-icon',
-                html: "<div style='background-color:#3b82f6; width:12px; height:12px; border-radius:50%; box-shadow:0 0 10px #3b82f6; border:2px solid white;'></div>",
-                iconSize: [30, 42],
-                iconAnchor: [15, 42]
-            });
-            
-            L.marker([lat, lon], {icon: icon}).addTo(system.map);
-        }
+// --- שליטה ---
+window.addEventListener('keydown', e => {
+    keys[e.code] = true;
+    if (e.code === 'KeyZ') p1.attack(p2, 'light');
+    if (e.code === 'KeyC') p1.attack(p2, 'heavy');
+    if (e.code === 'KeyX') p1.state = 'block';
+    if (e.code === 'KeyR' && gameOver) location.reload();
+});
 
-        // --- Webcams Integration ---
-        function loadWebcams() {
-            const frame = document.getElementById('webcamFrame');
-            // שימוש ב-Windy Embed API הוא הדרך הכי אמינה לקבל מצלמות מכל העולם בחינם
-            // אנחנו מכוונים את ה-iframe לקואורדינטות הנוכחיות
-            const lat = system.currentLat;
-            const lon = system.currentLon;
-            
-            // כתובת URL חכמה שמציגה את שכבת המצלמות של Windy
-            const windyUrl = `https://embed.windy.com/embed2.html?lat=${lat}&lon=${lon}&detailLat=${lat}&detailLon=${lon}&width=650&height=450&zoom=11&level=surface&overlay=cams&product=radar&menu=&message=&marker=&calendar=now&pressure=&type=map&location=coordinates&detail=&metricWind=default&metricTemp=default&radarRange=-1`;
-            
-            frame.src = windyUrl;
-        }
+window.addEventListener('keyup', e => {
+    keys[e.code] = false;
+    if (e.code === 'KeyX' && p1.state === 'block') p1.state = 'idle';
+});
 
-        // --- Utilities ---
-        function getWeatherInfo(code, isDay) {
-            const codes = {
-                0: {d:"Clear Sky", n:"Clear Sky", i:"☀️"},
-                1: {d:"Mainly Clear", n:"Mainly Clear", i:"🌤️"},
-                2: {d:"Partly Cloudy", n:"Partly Cloudy", i:"⛅"},
-                3: {d:"Overcast", n:"Overcast", i:"☁️"},
-                45: {d:"Fog", n:"Fog", i:"🌫️"},
-                51: {d:"Drizzle", n:"Drizzle", i:"🌧️"},
-                61: {d:"Rain", n:"Rain", i:"☔"},
-                71: {d:"Snow", n:"Snow", i:"❄️"},
-                95: {d:"Thunderstorm", n:"Thunderstorm", i:"⛈️"}
-            };
-            const def = codes[code] || codes[0];
-            return { desc: def.d, icon: def.i }; // Simplified for Pro look
-        }
+function startSlowMo() {
+    timeScale = 0.2;
+    gameOver = true;
+    const txt = document.getElementById('big-text');
+    txt.style.transform = "scale(1)";
+    if (p1.hp > 0) {
+        txt.innerText = "YOU WIN!";
+        txt.style.color = "#2ecc71";
+    } else {
+        txt.innerText = "KNOCKOUT";
+        txt.style.color = "#e74c3c";
+    }
+}
 
-        function showLoader(show) {
-            const el = document.getElementById('loader');
-            if(show) { el.classList.remove('opacity-0', 'pointer-events-none'); }
-            else { el.classList.add('opacity-0', 'pointer-events-none'); }
-        }
-    </script>
+// --- לולאת המשחק ---
+function loop() {
+    // Screen Shake Logic
+    let shakeX = 0, shakeY = 0;
+    if (shakeIntensity > 0) {
+        shakeX = (Math.random() - 0.5) * shakeIntensity;
+        shakeY = (Math.random() - 0.5) * shakeIntensity;
+        shakeIntensity *= 0.9;
+        if (shakeIntensity < 0.5) shakeIntensity = 0;
+    }
+
+    ctx.save();
+    ctx.translate(shakeX, shakeY);
+    ctx.clearRect(-10, -10, canvas.width+20, canvas.height+20);
+
+    // Floor
+    ctx.fillStyle = "#111";
+    ctx.fillRect(0, GROUND_Y, canvas.width, 120);
+    // Ring Ropes
+    ctx.strokeStyle = "#444";
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(0, GROUND_Y - 50); ctx.lineTo(canvas.width, GROUND_Y - 50);
+    ctx.moveTo(0, GROUND_Y - 100); ctx.lineTo(canvas.width, GROUND_Y - 100);
+    ctx.stroke();
+
+    // Logic
+    if (!gameOver || timeScale < 1.0) { // Keep updating slowmo
+        if (keys['ArrowLeft']) p1.vx = -4;
+        if (keys['ArrowRight']) p1.vx = 4;
+        
+        p1.update(p2);
+        p2.update(p1);
+    }
+
+    // Drawing
+    // Shadow
+    ctx.fillStyle = "rgba(0,0,0,0.5)";
+    ctx.beginPath();
+    ctx.ellipse(p1.x, GROUND_Y + 5, 20, 5, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(p2.x, GROUND_Y + 5, 20, 5, 0, 0, Math.PI*2);
+    ctx.fill();
+
+    p1.draw(ctx);
+    p2.draw(ctx);
+
+    // Particles
+    for(let i=particles.length-1; i>=0; i--) {
+        particles[i].update();
+        particles[i].draw(ctx);
+        if (particles[i].life <= 0) particles.splice(i, 1);
+    }
+
+    // Floating Text
+    for(let i=floatingTexts.length-1; i>=0; i--) {
+        floatingTexts[i].update();
+        floatingTexts[i].draw(ctx);
+        if (floatingTexts[i].life <= 0) floatingTexts.splice(i, 1);
+    }
+
+    ctx.restore();
+
+    // UI Updates
+    document.getElementById('hp1').style.width = p1.hp + '%';
+    document.getElementById('st1').style.width = p1.stamina + '%';
+    document.getElementById('hp2').style.width = p2.hp + '%';
+    document.getElementById('st2').style.width = p2.stamina + '%';
+
+    requestAnimationFrame(loop);
+}
+
+loop();
+
+</script>
 </body>
 </html>
