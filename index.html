@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>אפליקציית מזג אוויר</title>
+    <style>
+        /* --- עיצוב (CSS) --- */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #00c6ff, #0072ff);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+            color: #333;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 2rem;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            text-align: center;
+            width: 320px;
+            backdrop-filter: blur(10px);
+        }
+
+        h1 { margin-top: 0; color: #0072ff; }
+
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        input {
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid #ddd;
+            flex-grow: 1;
+            font-size: 16px;
+        }
+
+        button {
+            background-color: #0072ff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: 0.3s;
+        }
+
+        button:hover { background-color: #005bb5; }
+
+        .result {
+            margin-top: 20px;
+            display: none; /* מוסתר בהתחלה */
+        }
+
+        .temp {
+            font-size: 48px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .city-name { font-size: 24px; color: #555; }
+        .description { font-size: 18px; color: #777; margin-bottom: 10px; }
+        .icon { font-size: 60px; margin: 10px 0; }
+
+        .error { color: red; margin-top: 10px; display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h1>מזג האוויר</h1>
+        <div class="search-box">
+            <input type="text" id="cityInput" placeholder="כתוב שם של עיר באנגלית..." value="Tel Aviv">
+            <button onclick="getWeather()">חפש</button>
+        </div>
+
+        <div id="errorMessage" class="error">לא מצאתי את העיר הזו...</div>
+        <div id="loading" style="display:none;">מחפש נתונים...</div>
+
+        <div id="weatherResult" class="result">
+            <div class="city-name" id="cityName">תל אביב</div>
+            <div class="icon" id="weatherIcon">☀️</div>
+            <div class="temp"><span id="tempValue">25</span>°C</div>
+            <div class="description" id="weatherDesc">בהיר</div>
+            <div style="font-size: 12px; color: #999; margin-top:15px">רוח: <span id="windSpeed">0</span> קמ"ש</div>
+        </div>
+    </div>
+
+    <script>
+        /* --- לוגיקה (JavaScript) --- */
+        
+        async function getWeather() {
+            const city = document.getElementById('cityInput').value;
+            const resultDiv = document.getElementById('weatherResult');
+            const errorDiv = document.getElementById('errorMessage');
+            const loadingDiv = document.getElementById('loading');
+
+            // איפוס תצוגה
+            resultDiv.style.display = 'none';
+            errorDiv.style.display = 'none';
+            loadingDiv.style.display = 'block';
+
+            try {
+                // שלב 1: הופכים שם עיר לקואורדינטות (Lat/Lon)
+                const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${city}&count=1&language=en&format=json`;
+                const geoResponse = await fetch(geoUrl);
+                const geoData = await geoResponse.json();
+
+                if (!geoData.results) {
+                    throw new Error("City not found");
+                }
+
+                const lat = geoData.results[0].latitude;
+                const lon = geoData.results[0].longitude;
+                const name = geoData.results[0].name;
+
+                // שלב 2: שולחים את הקואורדינטות לקבלת מזג אוויר
+                const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`;
+                const weatherResponse = await fetch(weatherUrl);
+                const weatherData = await weatherResponse.json();
+
+                // שלב 3: הצגת הנתונים
+                const current = weatherData.current_weather;
+                
+                document.getElementById('cityName').innerText = name;
+                document.getElementById('tempValue').innerText = current.temperature;
+                document.getElementById('windSpeed').innerText = current.windspeed;
+                
+                // פענוח קוד מזג האוויר לאייקון וטקסט
+                const code = current.weathercode;
+                updateWeatherIcon(code);
+
+                loadingDiv.style.display = 'none';
+                resultDiv.style.display = 'block';
+
+            } catch (error) {
+                loadingDiv.style.display = 'none';
+                errorDiv.style.display = 'block';
+            }
+        }
+
+        // פונקציה שהופכת את המספרים המוזרים של המערכת לאייקונים מובנים
+        function updateWeatherIcon(code) {
+            let icon = "❓";
+            let desc = "לא ידוע";
+
+            if (code === 0) { icon = "☀️"; desc = "בהיר"; }
+            else if (code >= 1 && code <= 3) { icon = "⛅"; desc = "מעונן חלקית"; }
+            else if (code >= 45 && code <= 48) { icon = "🌫️"; desc = "ערפל"; }
+            else if (code >= 51 && code <= 67) { icon = "🌧️"; desc = "גשם"; }
+            else if (code >= 71 && code <= 77) { icon = "❄️"; desc = "שלג"; }
+            else if (code >= 95) { icon = "⛈️"; desc = "סופת רעמים"; }
+
+            document.getElementById('weatherIcon').innerText = icon;
+            document.getElementById('weatherDesc').innerText = desc;
+        }
+    </script>
+
+</body>
+</html>
