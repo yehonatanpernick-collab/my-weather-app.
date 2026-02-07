@@ -2,288 +2,305 @@
 <html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TITAN GLOBAL EYE 👁️</title>
-    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TITAN v7: STABLE CORE</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700;900&display=swap" rel="stylesheet">
-
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@500;900&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --primary: #00ff41; /* Cyber Green */
+            --alert: #ff3333;   /* Alert Red */
+            --bg-dark: #050505;
+            --panel: rgba(10, 15, 20, 0.95);
+        }
+
         body {
-            background-color: #050505;
-            color: #ffffff;
-            font-family: 'Heebo', sans-serif;
-            overflow-x: hidden;
-        }
-
-        /* עיצוב זכוכית לממשק */
-        .glass-panel {
-            background: rgba(20, 20, 20, 0.6);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.7);
-        }
-
-        /* סמן שידור חי */
-        .live-badge {
-            animation: pulse-red 2s infinite;
-        }
-        @keyframes pulse-red {
-            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
-            70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
-        }
-
-        /* רשימת המצלמות */
-        .cam-item {
-            transition: all 0.3s ease;
-            cursor: pointer;
-            border: 1px solid transparent;
-        }
-        .cam-item:hover, .cam-item.active {
-            background: rgba(255, 255, 255, 0.1);
-            border-color: #3b82f6;
-            transform: scale(1.02);
-        }
-        .cam-item.active .status-dot {
-            background-color: #3b82f6;
-            box-shadow: 0 0 10px #3b82f6;
-        }
-
-        /* מסך וידאו */
-        .video-container {
-            position: relative;
-            padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
-            height: 0;
+            background-color: var(--bg-dark);
+            color: var(--primary);
+            font-family: 'Share Tech Mono', monospace;
             overflow: hidden;
-            border-radius: 16px;
-            background: #000;
-        }
-        .video-container iframe {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            border: none;
+            height: 100vh;
         }
 
-        /* גלילה מותאמת */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+        /* --- UI ELEMENTS --- */
+        .panel-border {
+            border: 1px solid rgba(0, 255, 65, 0.3);
+            box-shadow: 0 0 10px rgba(0, 255, 65, 0.1);
+            position: relative;
+        }
+        
+        /* פינות טכנולוגיות */
+        .corner-decor { position: absolute; width: 10px; height: 10px; border-color: var(--primary); transition: 0.3s; }
+        .tl { top: -1px; left: -1px; border-top: 2px solid; border-left: 2px solid; }
+        .tr { top: -1px; right: -1px; border-top: 2px solid; border-right: 2px solid; }
+        .bl { bottom: -1px; left: -1px; border-bottom: 2px solid; border-left: 2px solid; }
+        .br { bottom: -1px; right: -1px; border-bottom: 2px solid; border-right: 2px solid; }
+
+        /* אנימציות */
+        .blink { animation: blinker 1s linear infinite; }
+        @keyframes blinker { 50% { opacity: 0; } }
+
+        .scanline {
+            width: 100%; height: 2px; background: rgba(0, 255, 65, 0.3);
+            position: absolute; z-index: 50; animation: scan 3s linear infinite; pointer-events: none;
+        }
+        @keyframes scan { 0% {top: 0%} 100% {top: 100%} }
+
+        /* כוונת על הוידאו */
+        .reticle {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 10;
+            background: 
+                linear-gradient(to right, rgba(255,255,255,0.1) 1px, transparent 1px) 0 0 / 20% 100%,
+                linear-gradient(to bottom, rgba(255,255,255,0.1) 1px, transparent 1px) 0 0 / 100% 20%;
+            opacity: 0.3;
+        }
+        .center-cross {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 40px; height: 40px; border: 1px solid rgba(255,0,0,0.5);
+        }
+        .center-cross::after {
+            content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 4px; height: 4px; background: red;
+        }
+
+        /* סרגל גלילה */
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-thumb { background: var(--primary); }
         ::-webkit-scrollbar-track { background: #000; }
+
+        .btn-action {
+            background: rgba(0, 255, 65, 0.1); border: 1px solid var(--primary);
+            color: var(--primary); padding: 5px 15px; cursor: pointer; text-transform: uppercase;
+            font-size: 10px; transition: 0.2s;
+        }
+        .btn-action:hover { background: var(--primary); color: black; }
     </style>
 </head>
-<body class="h-screen flex flex-col lg:flex-row overflow-hidden">
+<body class="flex flex-col lg:flex-row h-screen">
 
-    <main class="flex-1 flex flex-col p-4 relative h-full">
-        
-        <header class="flex justify-between items-center mb-4">
-            <div class="flex items-center gap-3">
-                <i class="fas fa-globe-americas text-blue-500 text-2xl"></i>
-                <div>
-                    <h1 class="text-xl font-black tracking-widest">GLOBAL <span class="text-blue-500">EYE</span></h1>
-                    <div class="text-xs text-gray-400">LIVE SATELLITE FEED NETWORK</div>
-                </div>
-            </div>
-            <div class="bg-red-600/20 text-red-500 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-2 border border-red-600/30 live-badge">
-                <div class="w-2 h-2 bg-red-500 rounded-full"></div> LIVE FEED
-            </div>
-        </header>
-
-        <div class="video-container shadow-2xl shadow-blue-900/20 border border-gray-800">
-            <iframe id="mainPlayer" src="" allow="autoplay; encrypted-media" allowfullscreen></iframe>
-            
-            <div id="videoLoader" class="absolute inset-0 bg-black flex items-center justify-center z-10">
-                <div class="animate-spin text-blue-500 text-4xl"><i class="fas fa-circle-notch"></i></div>
+    <aside class="w-full lg:w-80 bg-black border-l border-green-900 flex flex-col z-20">
+        <div class="p-4 border-b border-green-800">
+            <h1 class="text-3xl font-['Orbitron'] font-bold tracking-widest text-white">TITAN <span class="text-green-500">v7</span></h1>
+            <div class="text-[10px] text-green-600 mt-1 flex justify-between">
+                <span>SYS: ONLINE</span>
+                <span>SEC: ENCRYPTED</span>
             </div>
         </div>
 
-        <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 h-full overflow-hidden">
+        <div class="p-2 grid grid-cols-2 gap-2">
+            <button onclick="toggleFullscreen()" class="btn-action text-center"><i class="fas fa-expand"></i> FULL SCR</button>
+            <button onclick="forceReload()" class="btn-action text-center text-red-400 border-red-400 hover:bg-red-500"><i class="fas fa-sync"></i> REBOOT</button>
+        </div>
+
+        <div id="feedList" class="flex-1 overflow-y-auto p-2 space-y-2">
+            </div>
+
+        <div class="h-24 bg-black border-t border-green-800 p-2 relative overflow-hidden">
+            <div class="text-[9px] text-green-600 mb-1">NETWORK LATENCY</div>
+            <div id="graph-container" class="flex items-end h-12 gap-1">
+                </div>
+        </div>
+    </aside>
+
+    <main class="flex-1 relative flex flex-col bg-[#020202]">
+        
+        <div class="absolute top-0 left-0 w-full p-4 z-20 flex justify-between items-start pointer-events-none">
+            <div class="bg-black/80 p-2 border border-green-500/30 backdrop-blur-sm">
+                <div class="text-[10px] text-gray-400">TARGET DESIGNATION</div>
+                <div id="targetName" class="text-xl font-bold text-white font-['Orbitron']">INITIALIZING...</div>
+                <div id="geoCoords" class="text-xs text-green-400 font-mono mt-1">LAT: --.-- | LON: --.--</div>
+            </div>
             
-            <div class="glass-panel p-4 rounded-xl flex flex-col justify-center">
-                <h2 id="camTitle" class="text-2xl font-bold">Loading...</h2>
-                <div id="camRegion" class="text-gray-400 text-sm mb-2">--</div>
-                <div class="text-3xl font-mono text-blue-400" id="localTime">--:--</div>
-                <div class="text-xs text-gray-500 mt-1">LOCAL TIME</div>
+            <div class="flex flex-col items-end gap-2">
+                <div class="bg-red-900/20 border border-red-500 text-red-500 px-3 py-1 text-xs font-bold blink backdrop-blur-sm">
+                    ● LIVE RECORDING
+                </div>
+                <div class="text-3xl font-bold text-white font-mono" id="mainClock">00:00:00</div>
+            </div>
+        </div>
+
+        <div class="relative flex-1 bg-black flex items-center justify-center overflow-hidden">
+            <div class="scanline"></div>
+            <div class="reticle">
+                <div class="center-cross"></div>
+            </div>
+            
+            <iframe id="videoPlayer" class="w-full h-full absolute inset-0 object-cover" 
+                    src="" frameborder="0" allow="autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen>
+            </iframe>
+
+            <div id="fallbackMsg" class="hidden absolute z-0 text-center">
+                <i class="fas fa-exclamation-triangle text-4xl text-yellow-500 mb-2"></i>
+                <div class="text-white">SIGNAL LOST</div>
+                <button onclick="forceReload()" class="mt-2 text-xs border border-white px-2 py-1 text-white hover:bg-white hover:text-black">TRY RECONNECT</button>
+            </div>
+        </div>
+
+        <div class="h-40 lg:h-48 bg-black border-t border-green-800 p-4 grid grid-cols-2 lg:grid-cols-4 gap-4 z-20">
+            
+            <div class="panel-border p-3 bg-gray-900/50">
+                <div class="corner-decor tl"></div><div class="corner-decor tr"></div><div class="corner-decor bl"></div><div class="corner-decor br"></div>
+                <div class="text-[10px] text-green-600 mb-2">ATMOSPHERIC DATA</div>
+                <div class="flex justify-between items-end">
+                    <div class="text-3xl text-white font-bold"><span id="temp">--</span>°C</div>
+                    <div class="text-sm text-green-400 mb-1"><i class="fas fa-wind"></i> <span id="wind">--</span> km/h</div>
+                </div>
+                <div class="text-xs text-gray-400 mt-1" id="condition">Scanning...</div>
             </div>
 
-            <div class="glass-panel p-4 rounded-xl flex items-center justify-between">
-                <div>
-                    <div class="text-gray-400 text-xs uppercase tracking-wide">Temperature</div>
-                    <div class="text-5xl font-light mt-1"><span id="temp">--</span>°</div>
-                    <div id="weatherDesc" class="text-blue-300 text-sm mt-1">--</div>
-                </div>
-                <div class="text-6xl text-gray-300" id="weatherIcon">🌤️</div>
+            <div class="col-span-1 lg:col-span-2 panel-border p-2 bg-black font-mono text-[10px] overflow-hidden flex flex-col relative">
+                <div class="text-green-800 border-b border-green-900 mb-1">SYSTEM_LOG</div>
+                <div id="terminal" class="flex-1 overflow-hidden text-green-400 flex flex-col justify-end"></div>
             </div>
 
-            <div class="glass-panel p-4 rounded-xl grid grid-cols-2 gap-2">
-                <div class="bg-white/5 rounded p-2 text-center">
-                    <i class="fas fa-wind text-blue-400 mb-1"></i>
-                    <div class="text-sm font-bold"><span id="wind">--</span></div>
-                    <div class="text-[10px] text-gray-400">WIND (km/h)</div>
-                </div>
-                <div class="bg-white/5 rounded p-2 text-center">
-                    <i class="fas fa-tint text-blue-400 mb-1"></i>
-                    <div class="text-sm font-bold"><span id="humidity">--</span>%</div>
-                    <div class="text-[10px] text-gray-400">HUMIDITY</div>
-                </div>
-                <div class="bg-white/5 rounded p-2 text-center">
-                    <i class="fas fa-eye text-blue-400 mb-1"></i>
-                    <div class="text-sm font-bold"><span id="vis">--</span></div>
-                    <div class="text-[10px] text-gray-400">VIS (km)</div>
-                </div>
-                <div class="bg-white/5 rounded p-2 text-center">
-                    <i class="fas fa-cloud text-blue-400 mb-1"></i>
-                    <div class="text-sm font-bold"><span id="clouds">--</span>%</div>
-                    <div class="text-[10px] text-gray-400">CLOUDS</div>
+            <div class="panel-border p-3 bg-gray-900/50 flex flex-col justify-center items-center">
+                <div class="corner-decor tl"></div><div class="corner-decor br"></div>
+                <div class="text-[10px] text-green-600 mb-1">THREAT ANALYSIS</div>
+                <div id="threatLevel" class="text-2xl font-bold text-blue-400">SAFE</div>
+                <div class="w-full bg-gray-800 h-1 mt-2 rounded">
+                    <div id="threatBar" class="h-full bg-blue-500 w-[20%] transition-all duration-1000"></div>
                 </div>
             </div>
+
         </div>
     </main>
 
-    <aside class="w-full lg:w-80 bg-[#0a0a0a] border-t lg:border-t-0 lg:border-r border-gray-800 flex flex-col h-1/3 lg:h-full">
-        <div class="p-4 border-b border-gray-800 bg-[#0f0f0f]">
-            <h3 class="font-bold text-gray-400 text-xs tracking-widest">AVAILABLE FEEDS</h3>
-        </div>
-        
-        <div id="camList" class="overflow-y-auto p-2 space-y-2 flex-1">
-            </div>
-    </aside>
-
     <script>
-        // === מאגר מצלמות (YouTube Live IDs) ===
-        // הערה: שידורי לייב ביוטיוב משתנים לפעמים. בחרתי את הערוצים היציבים ביותר.
-        const cameras = [
-            { name: "New York", sub: "Times Square, USA", id: "mPZ73C8yR24", lat: 40.7580, lon: -73.9855, tz: "America/New_York" },
-            { name: "Tokyo", sub: "Shibuya Crossing, Japan", id: "2jR3E3n_3yY", lat: 35.6595, lon: 139.7004, tz: "Asia/Tokyo" },
-            { name: "London", sub: "Heathrow Airport, UK", id: "91I8pZAQE30", lat: 51.4700, lon: -0.4543, tz: "Europe/London" },
-            { name: "Venice", sub: "Grand Canal, Italy", id: "ph1vpnYIxJk", lat: 45.4408, lon: 12.3155, tz: "Europe/Rome" },
-            { name: "Prague", sub: "Old Town, Czechia", id: "uQKqI5sM-vY", lat: 50.0874, lon: 14.4212, tz: "Europe/Prague" },
-            { name: "Koh Samui", sub: "Beach Cam, Thailand", id: "y603a_qG0Kk", lat: 9.5120, lon: 100.0582, tz: "Asia/Bangkok" },
-            { name: "Kiev", sub: "Maidan Square, Ukraine", id: "ViKj4Vw230o", lat: 50.4501, lon: 30.5234, tz: "Europe/Kiev" },
-            { name: "Jackson Hole", sub: "Wyoming, USA", id: "1EiC9bvVGnk", lat: 43.4799, lon: -110.7624, tz: "America/Denver" },
-            { name: "Amsterdam", sub: "Dam Square, Netherlands", id: "SjH8-r2g9x8", lat: 52.3731, lon: 4.8926, tz: "Europe/Amsterdam" }
+        // --- SECURE FEED DATABASE (Updated Links) ---
+        // אם לינק לא עובד, רק צריך להחליף את ה-ID כאן
+        const feeds = [
+            { id: "xRPjKQtRKT8", name: "NASA ISS", loc: "LOW EARTH ORBIT", lat: 0, lon: 0 },
+            { id: "2jR3E3n_3yY", name: "TOKYO", loc: "SHIBUYA CROSSING", lat: 35.6595, lon: 139.7004 },
+            { id: "mPZ73C8yR24", name: "NEW YORK", loc: "TIMES SQUARE", lat: 40.7580, lon: -73.9855 },
+            { id: "91I8pZAQE30", name: "LONDON", loc: "TOWER BRIDGE", lat: 51.5055, lon: -0.0754 }, // Updated London
+            { id: "MIt3jFiHbTs", name: "JERUSALEM", loc: "WESTERN WALL", lat: 31.7767, lon: 35.2345 },
+            { id: "Kz38S45k-d0", name: "ROME", loc: "COLOSSEUM", lat: 41.8902, lon: 12.4922 },
+            { id: "O8xIXy1wH9o", name: "KENYA", loc: "WILDLIFE CAM", lat: -1.2921, lon: 36.8219 }
         ];
 
-        let currentCamIndex = 0;
+        let activeFeed = null;
 
-        // === אתחול ===
+        // --- INIT ---
         window.onload = () => {
             renderList();
-            loadCamera(0);
-            
-            // עדכון שעון מקומי כל דקה
-            setInterval(updateLocalTime, 10000);
+            startClock();
+            simulateGraph();
+            loadFeed(0); // Load first cam
+            log("SYSTEM INITIALIZED");
+            log("CONNECTED TO SATELLITE RELAY");
         };
 
-        // === יצירת רשימה ===
+        // --- CORE FUNCTIONS ---
         function renderList() {
-            const list = document.getElementById('camList');
-            list.innerHTML = '';
-            
-            cameras.forEach((cam, index) => {
+            const container = document.getElementById('feedList');
+            feeds.forEach((feed, index) => {
                 const el = document.createElement('div');
-                el.className = `cam-item p-3 rounded-lg flex items-center gap-3 ${index === 0 ? 'active' : ''}`;
-                el.onclick = () => loadCamera(index);
+                el.className = "panel-border p-3 cursor-pointer hover:bg-green-900/30 transition flex justify-between items-center group";
+                el.onclick = () => loadFeed(index);
                 el.innerHTML = `
-                    <div class="relative w-16 h-10 bg-gray-800 rounded overflow-hidden">
-                        <img src="https://img.youtube.com/vi/${cam.id}/mqdefault.jpg" class="w-full h-full object-cover opacity-70">
-                    </div>
                     <div>
-                        <div class="font-bold text-sm">${cam.name}</div>
-                        <div class="text-xs text-gray-500">${cam.sub}</div>
+                        <div class="font-bold text-white text-sm group-hover:text-green-400">${feed.name}</div>
+                        <div class="text-[9px] text-gray-500">${feed.loc}</div>
                     </div>
-                    <div class="mr-auto status-dot w-2 h-2 rounded-full bg-gray-600 transition-colors"></div>
+                    <i class="fas fa-satellite-dish text-[10px] text-gray-700 group-hover:text-green-500"></i>
                 `;
-                list.appendChild(el);
+                container.appendChild(el);
             });
         }
 
-        // === טעינת מצלמה ונתונים ===
-        async function loadCamera(index) {
-            currentCamIndex = index;
-            const cam = cameras[index];
+        function loadFeed(index) {
+            activeFeed = feeds[index];
             
-            // עדכון UI ברשימה
-            document.querySelectorAll('.cam-item').forEach((el, i) => {
-                if(i === index) el.classList.add('active');
-                else el.classList.remove('active');
-            });
+            // 1. Update Header
+            document.getElementById('targetName').innerText = activeFeed.name;
+            document.getElementById('geoCoords').innerText = `LAT: ${activeFeed.lat.toFixed(4)} | LON: ${activeFeed.lon.toFixed(4)}`;
+            
+            // 2. Load Video (with error handling visually)
+            const iframe = document.getElementById('videoPlayer');
+            // שימוש בפרמטרים אגרסיביים לטעינה מהירה
+            iframe.src = `https://www.youtube.com/embed/${activeFeed.id}?autoplay=1&mute=1&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1`;
+            
+            // 3. Reset Fallback
+            document.getElementById('fallbackMsg').classList.add('hidden');
+            
+            // 4. Logs & Data
+            log(`ESTABLISHING LINK: ${activeFeed.name}`);
+            fetchWeather(activeFeed);
+            analyzeThreat(activeFeed);
+        }
 
-            // הצגת לואדר
-            document.getElementById('videoLoader').style.display = 'flex';
-
-            // טעינת וידאו
-            const player = document.getElementById('mainPlayer');
-            player.src = `https://www.youtube.com/embed/${cam.id}?autoplay=1&mute=1&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1`;
-            
-            // עדכון כותרות
-            document.getElementById('camTitle').innerText = cam.name;
-            document.getElementById('camRegion').innerText = cam.sub;
-            
-            // הסתרת לואדר אחרי 2 שניות (סימולציה)
+        function forceReload() {
+            log("MANUAL REBOOT INITIATED...");
+            const iframe = document.getElementById('videoPlayer');
+            const currentSrc = iframe.src;
+            iframe.src = ''; 
             setTimeout(() => {
-                document.getElementById('videoLoader').style.display = 'none';
-            }, 1500);
-
-            // טעינת מזג אוויר
-            updateLocalTime();
-            await fetchWeather(cam.lat, cam.lon);
+                iframe.src = currentSrc;
+                log("SIGNAL RESTORED");
+            }, 500);
         }
 
-        // === מנוע מזג אוויר (ללא Windy) ===
-        async function fetchWeather(lat, lon) {
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
+        // --- DATA SIMULATION ---
+        async function fetchWeather(feed) {
+            if(feed.lat === 0) { // Space
+                updateWeatherUI("-270", "0", "VACUUM");
+                return;
+            }
+            
+            updateWeatherUI("--", "--", "Syncing...");
+            
             try {
-                // קריאה ל-Open-Meteo
-                const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,visibility,cloud_cover`);
+                const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${feed.lat}&longitude=${feed.lon}&current=temperature_2m,wind_speed_10m,weather_code`);
                 const data = await res.json();
-                const cur = data.current;
-
-                // עדכון הנתונים במסך
-                document.getElementById('temp').innerText = Math.round(cur.temperature_2m);
-                document.getElementById('wind').innerText = Math.round(cur.wind_speed_10m);
-                document.getElementById('humidity').innerText = cur.relative_humidity_2m;
-                document.getElementById('vis').innerText = (cur.visibility / 1000).toFixed(1);
-                document.getElementById('clouds').innerText = cur.cloud_cover;
                 
-                // אייקון ותיאור
-                const info = getWeatherInfo(cur.weather_code);
-                document.getElementById('weatherIcon').innerText = info.icon;
-                document.getElementById('weatherDesc').innerText = info.desc;
+                const weatherCode = data.current.weather_code;
+                let condition = "CLEAR";
+                if(weatherCode > 3) condition = "CLOUDY";
+                if(weatherCode > 50) condition = "RAIN";
+                if(weatherCode > 71) condition = "SNOW";
 
-            } catch (e) {
-                console.error("Weather Error", e);
+                updateWeatherUI(
+                    Math.round(data.current.temperature_2m),
+                    data.current.wind_speed_10m,
+                    condition
+                );
+            } catch(e) {
+                log("METEO DATA PACKET LOSS");
             }
         }
 
-        function updateLocalTime() {
-            const cam = cameras[currentCamIndex];
-            try {
-                const time = new Date().toLocaleTimeString('en-US', {
-                    timeZone: cam.tz,
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    hour12: false
-                });
-                document.getElementById('localTime').innerText = time;
-            } catch (e) {
-                document.getElementById('localTime').innerText = "--:--";
-            }
+        function updateWeatherUI(t, w, c) {
+            document.getElementById('temp').innerText = t;
+            document.getElementById('wind').innerText = w;
+            document.getElementById('condition').innerText = c;
         }
 
-        function getWeatherInfo(code) {
-            const map = {
-                0: {t: "Clear Sky", i: "☀️"},
-                1: {t: "Mainly Clear", i: "🌤️"},
-                2: {t: "Partly Cloudy", i: "⛅"},
-                3: {t: "Overcast", i: "☁️"},
-                45: {t: "Foggy", i: "🌫️"},
-                51: {t: "Drizzle", i: "🌧️"},
-                61: {t: "Rain", i: "☔"},
-                71: {t: "Snow", i: "❄️"},
-                95: {t: "Thunderstorm", i: "⛈️"}
-            };
-            const def = map[code] || map[0];
-            return { desc: def.t, icon: def.i };
-        }
-    </script>
-</body>
-</html>
+        function analyzeThreat(feed) {
+            // סימולציה של ניתוח איומים לפי מיקום
+            const threatEl = document.getElementById('threatLevel');
+            const bar = document.getElementById('threatBar');
+            
+            let level = "SAFE";
+            let color = "text-blue-400";
+            let width = "20%";
+            let barColor = "bg-blue-500";
+
+            if(feed.lat === 0) { // Space is dangerous
+                level = "HAZARD"; color = "text-orange-500"; width = "80%"; barColor = "bg-orange-500";
+            } else if (Math.random() > 0.7) {
+                level = "CAUTION"; color = "text-yellow-400"; width = "50%"; barColor = "bg-yellow-500";
+            }
+
+            threatEl.innerText = level;
